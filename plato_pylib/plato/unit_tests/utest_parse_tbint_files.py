@@ -8,7 +8,7 @@ import numpy as np
 
 
 sys.path.append('../..')
-import plato_pylib.parse_tbint_files as tCode
+import plato_pylib.plato.parse_tbint_files as tCode
 from utest_parse_bas_files import createPartialBasFileA
 
 DOUBLEABSTOL = 1e-7

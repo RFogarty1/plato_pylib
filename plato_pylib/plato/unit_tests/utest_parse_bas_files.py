@@ -8,7 +8,7 @@ import unittest
 
 import numpy as np
 sys.path.append('../..')
-import plato_pylib.parse_bas_files as tCode
+import plato_pylib.plato.parse_bas_files as tCode
 
 from collections import namedtuple
 

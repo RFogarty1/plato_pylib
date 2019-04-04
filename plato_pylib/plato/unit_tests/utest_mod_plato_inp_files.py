@@ -5,7 +5,7 @@ import sys
 import unittest
 
 sys.path.append('../..')
-import plato_pylib.mod_plato_inp_files as tCode
+import plato_pylib.plato.mod_plato_inp_files as tCode
 
 
 

@@ -1,2 +1,2 @@
-"python3 setup.py install --user"
+python3 setup.py install --user --record files.txt
 should be enough to install this

@@ -5,8 +5,8 @@ import os
 import sys
 import unittest
 sys.path.append('../..')
-import plato_pylib.parse_gau_files as tCode
-import plato_pylib.parse_bas_files as parseBas #To get info for a header file
+import plato_pylib.plato.parse_gau_files as tCode
+import plato_pylib.plato.parse_bas_files as parseBas #To get info for a header file
 
 from utest_parse_bas_files import createPartialBasFileA
 
