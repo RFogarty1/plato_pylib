@@ -1,0 +1,2 @@
+"python3 setup.py install --user"
+should be enough to install this
