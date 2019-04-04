@@ -11,7 +11,6 @@ sys.path.append('..')
 
 import plato_pylib.parseOther.parse_castep_files as tCode
 
-BOHR_TO_ANG = 1.8897259886
 
 class testParseCastepOutFile(unittest.TestCase):
 
@@ -108,124 +107,6 @@ class testParseCastepOutFile(unittest.TestCase):
 		[self.assertAlmostEqual(exp,act) for exp,act in itertools.zip_longest(expectedCutoffs,actualCutoffs)]
 
 
-class testUnitCellClass(unittest.TestCase):
-	def setUp(self):
-		lattParams = [3.746172, 3.746172, 3.746172]
-		lattAngles = [60.0,60.0,60.0]
-		self.testObjA = tCode.UnitCell(lattParams=lattParams, lattAngles=lattAngles)
-
-	def testCorrectLatticeParams_constructor(self):
-		''' Test tCode.UnitCell class correctly converts lattice param list into a dict '''
-		inpLatticeParams = [3.5, 2.04, 1.004]
-		testObj = tCode.UnitCell( lattParams=inpLatticeParams )
-
-		self.assertEqual(inpLatticeParams[0], testObj.lattParams["a"])
-		self.assertEqual(inpLatticeParams[1], testObj.lattParams["b"])
-		self.assertEqual(inpLatticeParams[2], testObj.lattParams["c"])
-
-	def testCorrectLatticeAngles_constructor(self):
-		''' Test tCode.UnitCell class correctly converts lattice angles list into a dict '''
-		inpLatticeAngles = [20, 45, 90]
-		testObj = tCode.UnitCell( lattAngles=inpLatticeAngles )
-
-		self.assertEqual(inpLatticeAngles[0], testObj.lattAngles["alpha"])
-		self.assertEqual(inpLatticeAngles[1], testObj.lattAngles["beta"])
-		self.assertEqual(inpLatticeAngles[2], testObj.lattAngles["gamma"]) 
-
-
-	def testCorrectLattParamsAnglesFromVectors(self):
-		''' Test tCode.UnitCell class correctly converts vectors to lattice params and angles (hcp)'''
-		
-		latticeVectors = [ [2.0 ,0.0     , 0.0     ],
-		                   [0.0, 2.0, 0.0     ],
-		                   [0.0     , 3.40000, 12.09628] ] 
-
-		expectedLattParams = [2, 2, 12.56503044]
-		expectedLattAngles = [74.3004871146, 90.0, 90.0]
-		
-		testObj = tCode.UnitCell.fromLattVects(latticeVectors)
-		actualLattParams = testObj.getLattParamsList()
-		actualLattAngles = testObj.getLattAnglesList()
-
-		[self.assertAlmostEqual(x,y) for x,y in zip(expectedLattParams, actualLattParams)]
-		[self.assertAlmostEqual(x,y) for x,y in zip(expectedLattAngles, actualLattAngles)]
-
-	def testGetVolume_lattParamsAngles(self):
-		''' Test getVolume works when the object has lattice parameters and angles defined '''
-		lattParams = [ [3.746172, 3.746172, 3.746172],
-		               [3.209401, 3.209331, 5.210802] ]
-		lattAngles = [ [60.0,60.0,60.0],
-		               [90.0, 90.0, 120.000728] ]
-		allTestObjs = [tCode.UnitCell( lattParams=x, lattAngles=y) for x,y in zip(lattParams, lattAngles)]
-
-		expectedVolumes = [37.174744, 46.480470] #Come from castep calcs
-		actualVolumes = [currObj.getVolume() for currObj in allTestObjs]
-
-		[self.assertAlmostEqual(expected, actual, places=4) for expected, actual in zip(expectedVolumes, actualVolumes)]
-		[print("Expected Volume:" + str(expected) + "\tActual Volume:" + str(actual)) for expected, actual in zip(expectedVolumes, actualVolumes)]
-
-	def testConvAngstromToBohr(self):
-		''' Test tCode.UnitCell.convAngstromToBohr correctly works on lattice parameters and resultant volumes (volumes'''
-		''' depend on the tCode.UnitCell.getVolume() implementation) ''' 
-		lattParams = [ [3.746172, 3.746172, 3.746172],
-		               [3.209401, 3.209331, 5.210802] ]
-		lattAngles = [ [60.0,60.0,60.0],
-		               [90.0, 90.0, 120.000728] ]
-		allTestObjs = [tCode.UnitCell( lattParams=x, lattAngles=y) for x,y in zip(lattParams, lattAngles)]
-
-		expectedLattParams = [ [7.07923858616564, 7.07923858616564, 7.07923858616564],
-		                       [6.06488847753883, 6.06475619671963, 9.84698796084886] ]
-		expectedVolumes = [250.867643296291, 313.665691831337] #in angstron 37.1747573672726 and 46.4804700799773; 
-
-		[currCell.convAngToBohr() for currCell in allTestObjs]
-		actualLattParams = [currCell.getLattParamsList() for currCell in allTestObjs]
-		actualVolumes = [currCell.getVolume() for currCell in allTestObjs]
-
-		for expected,actual in zip(expectedLattParams, actualLattParams):
-			self.assertAlmostEqual(expected[0], actual[0])
-			self.assertAlmostEqual(expected[1], actual[1])
-			self.assertAlmostEqual(expected[2], actual[2])
-		[self.assertAlmostEqual(expected, actual) for expected, actual in zip(expectedVolumes, actualVolumes)]
-
-	def testFromCellFile(self):
-		inpCellFile = createCastepCellFileA()
-		expLattParams = [x*BOHR_TO_ANG for x in [3.209407, 3.209440, 5.210808] ]
-		expLattAngles = [90.0, 90.0, 120.0]
-
-		testObj = tCode.UnitCell.fromCellFile(inpCellFile)
-		actLattParams = testObj.getLattParamsList()
-		actLattAngles = testObj.getLattAnglesList()
-
-
-		print("expected latt params = {}, actual = {}".format(expLattParams, actLattParams))
-
-		[self.assertAlmostEqual(exp, act,places=3) for exp,act in itertools.zip_longest(expLattParams, actLattParams)]
-		[self.assertAlmostEqual(exp, act, places=3) for exp,act in itertools.zip_longest(expLattAngles, actLattAngles)]
-
-		os.remove(inpCellFile)
-
-	def testGetLattVectors(self):
-		testLattParams = [x*BOHR_TO_ANG for x in [3.209407, 3.209440, 5.210808] ]
-		testLattAngles = [90.0, 90.0, 120.0]
-
-		testObj = tCode.UnitCell( lattParams=testLattParams, lattAngles=testLattAngles )
-		expectedLattVects = [ [6.0649000000,  0.0000000000,  0.0000000000],
-		                           [-3.0325000000, 5.2524000000,  0.0000000000],
-		                           [0.0000000000,  0.0000000000,  9.8470000000] ]
-
-		actualLattVects = testObj.getLattVects()
-
-		for vectIdx in range(len(expectedLattVects)):
-			currExp, currAct = expectedLattVects[vectIdx], actualLattVects[vectIdx]
-			[self.assertAlmostEqual(exp,act,3) for exp,act in itertools.zip_longest(currExp, currAct)]
-
-	def testCastepCellStr(self):
-		units = "bohr"
-
-		expectedStr = "bohr\n3.746172 0.0 0.0\n1.8730860000000005 3.244280118945958 0.0\n1.8730860000000005 1.0814267063153196 3.0587366295671807"
-		actualStr = self.testObjA.getCastepCellStr()
-
-		self.assertEqual(expectedStr, actualStr)
 
 class testParseCellFile(unittest.TestCase):
 
