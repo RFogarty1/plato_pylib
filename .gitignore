@@ -2,3 +2,4 @@ build/
 __pycache__/
 files.txt
 install.sh
+dftOutFile.out
