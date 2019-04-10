@@ -192,7 +192,7 @@ def writeGauFile(filePath, gauData:"dict, format same as the parser", fileHeader
 		f.write(outStr)
 
 def parseGauCsv(filePath):
-	outDict = {"density":None, "neutatom":None, "orbitals":None, "nlpp":None}
+	outDict = {"density":None, "neutatom":None, "orbitals":None, "nlpp":None, "weightfuncts":None}
 	with open(filePath,"rt") as f:
 		fileAsList = f.readlines()
 	
@@ -246,8 +246,9 @@ def writeGauCsvFile(outPath, gridData:"dict of GauCsvGridInfo objects"):
 	outStr = ""
 
 	#Orbitals
-	for currOrb in gridData["orbitals"]:
-		outStr += _getGauCsvSectionStr("orbital", currOrb)
+	if gridData["orbitals"] is not None:
+		for currOrb in gridData["orbitals"]:
+			outStr += _getGauCsvSectionStr("orbital", currOrb)
 
 	#Density
 	outStr += _getGauCsvSectionStr("density", gridData["density"])
@@ -256,12 +257,14 @@ def writeGauCsvFile(outPath, gridData:"dict of GauCsvGridInfo objects"):
 	outStr += _getGauCsvSectionStr("neutatom", gridData["neutatom"])
 
 	#Non-loc pseudopot
-	for nlpp in gridData["nlpp"]:
-		outStr += _getGauCsvSectionStr("nlpp", nlpp)
+	if gridData["nlpp"] is not None:
+		for nlpp in gridData["nlpp"]:
+			outStr += _getGauCsvSectionStr("nlpp", nlpp)
 
 	#Weightfuncts
-	for wfunct in gridData["weightfuncts"]:
-		outStr += _getGauCsvSectionStr("weightfunct", wfunct )
+	if gridData["weightfuncts"] is not None:
+		for wfunct in gridData["weightfuncts"]:
+			outStr += _getGauCsvSectionStr("weightfunct", wfunct )
 
 	with open(outPath,"wt") as f:
 		f.write(outStr)	
@@ -273,6 +276,9 @@ def _getGauCsvSectionStr(keyVal:str, gauGridObj:"GauCsvGridInfo obj"):
 	               "neutatom": "Neutral atom potential, ngauss=?, npoly=?",
 	               "nlpp": "Non-local pseudopotential, ngauss=?, npoly=?",
 	               "weightfunct": "McWeda, n=?, l=?, , ngauss=?"}
+	if gauGridObj is None:
+		return ""
+
 	outStr = ""
 	outStr += keyToHeader[keyVal] + '\n'
 	outStr += "R, Original, Fit" + '\n'
