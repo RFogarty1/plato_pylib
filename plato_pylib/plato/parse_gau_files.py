@@ -4,6 +4,8 @@ import itertools
 import math
 import os
 
+import numpy as np
+
 def parseGauFile(gauFile:str):
 	with open(gauFile,"rt") as f:
 		fileAsList = f.readlines()
@@ -11,10 +13,12 @@ def parseGauFile(gauFile:str):
 	lIdx=0
 	orbitalFits = list()
 	nlPPFits = list()
+	weightFits = list()
 	outDict = dict()
 
 	outDict["orbitals"] = None
 	outDict["nlpp"] = None
+	outDict["weightfuncts"]=None
 
 	while lIdx < len(fileAsList):
 		currLine = fileAsList[lIdx]
@@ -57,6 +61,16 @@ def parseGauFile(gauFile:str):
 				outDict["nlpp"] = nlPPFits
 			except IndexError:
 				pass
+
+		#WEIGHT FUNCTIONS
+		elif currLine.find("McWeda Weight Functions") != -1:
+			currFit, lIdx = parseFit(fileAsList, lIdx+3)
+			try:
+				weightFits.append(  GauPolyBasis.fromIterable(currFit)  )
+				outDict["weightfuncts"] = weightFits
+			except IndexError:
+				pass
+
 		else:
 			lIdx += 1
 
@@ -147,7 +161,10 @@ def writeGauFile(filePath, gauData:"dict, format same as the parser", fileHeader
 	                           "#               a                           c\n",
 	               "nlpp":     "#Fitting parameters - non-local pseudopotential\n"
 	                           "# l = ?\n"
-	                           "#               a                           c\n"
+	                           "#               a                           c\n",
+	               "weightfuncts":  "#Fitting parameters - McWeda Weight Functions\n"
+	                                "#n(orig orbital) = 3 l(orig orbital) = 0\n"
+	                                "#               a                           c\n"
 	              }
 	outStr = fileHeader
 	#Orbitals first to be written
@@ -164,6 +181,12 @@ def writeGauFile(filePath, gauData:"dict, format same as the parser", fileHeader
 	           "#               a                           c\n" +
 	           "0 0\n")
 	outStr += dexcStr
+	#weight functs
+	if gauData["weightfuncts"] is None:
+		pass
+	else:
+		for currWeight in gauData["weightfuncts"]:
+			outStr += keyToHeader["weightfuncts"] + currWeight.toGauStr(orb=True)
 
 	with open(filePath,'wt') as f:
 		f.write(outStr)
@@ -174,7 +197,7 @@ def parseGauCsv(filePath):
 		fileAsList = f.readlines()
 	
 	lIdx = 0
-	orbList, nlList = list(), list()
+	orbList, nlList, weightList = list(), list(), list()
 	while lIdx < len(fileAsList):
 		if fileAsList[lIdx].find("Wavefunction")!=-1:
 			lIdx, currOrbFit = parseSectionGauCsv(fileAsList, lIdx+2)
@@ -190,6 +213,10 @@ def parseGauCsv(filePath):
 			lIdx, currFit = parseSectionGauCsv(fileAsList,lIdx+2)
 			nlList.append(currFit)
 			outDict["nlpp"] = nlList
+		elif fileAsList[lIdx].find("McWeda") != -1:
+			lIdx, currFit = parseSectionGauCsv(fileAsList,lIdx+2)
+			weightList.append(currFit)
+			outDict["weightfuncts"] = weightList
 		else:
 			lIdx += 1
 
@@ -215,12 +242,59 @@ def parseSectionGauCsv(fileAsList,lIdx):
 
 	return lIdx,outData
 
+def writeGauCsvFile(outPath, gridData:"dict of GauCsvGridInfo objects"):
+	outStr = ""
+
+	#Orbitals
+	for currOrb in gridData["orbitals"]:
+		outStr += _getGauCsvSectionStr("orbital", currOrb)
+
+	#Density
+	outStr += _getGauCsvSectionStr("density", gridData["density"])
+
+	#Neutal atom pot
+	outStr += _getGauCsvSectionStr("neutatom", gridData["neutatom"])
+
+	#Non-loc pseudopot
+	for nlpp in gridData["nlpp"]:
+		outStr += _getGauCsvSectionStr("nlpp", nlpp)
+
+	#Weightfuncts
+	for wfunct in gridData["weightfuncts"]:
+		outStr += _getGauCsvSectionStr("weightfunct", wfunct )
+
+	with open(outPath,"wt") as f:
+		f.write(outStr)	
+
+
+def _getGauCsvSectionStr(keyVal:str, gauGridObj:"GauCsvGridInfo obj"):
+	keyToHeader = {"orbital": "Wavefunction, n=?, l=?, occ=?, eigenvalue=    ?, ngauss=?",
+	               "density": "Density, ngauss=?, npoly=?",
+	               "neutatom": "Neutral atom potential, ngauss=?, npoly=?",
+	               "nlpp": "Non-local pseudopotential, ngauss=?, npoly=?",
+	               "weightfunct": "McWeda, n=?, l=?, , ngauss=?"}
+	outStr = ""
+	outStr += keyToHeader[keyVal] + '\n'
+	outStr += "R, Original, Fit" + '\n'
+	outStr += gauGridObj.toStr() + '\n'
+	return outStr
+
+
 
 class GauCsvGridInfo():
 	def __init__(self, actVals:iter, fitVals:iter):
 		self.actVals = [(x,y) for x,y in actVals]
 		self.fitVals = [(x,y) for x,y in fitVals]
 		self._eqTol = 1e-8 #Allowance for float-errors when comparing objs for equality
+
+	def toStr(self):
+		actVals = np.array(self.actVals)
+		fitVals = np.array(self.fitVals)
+		outStr = ""
+		for x,act,fit in zip( actVals[:,0], actVals[:,1], fitVals[:,1] ):
+			outStr += "{:12.5g}, {:12.5g}, {:12.5g}\n".format(x,act,fit)
+		return outStr
+
 
 	def __eq__(self,other):
 		retVal = True

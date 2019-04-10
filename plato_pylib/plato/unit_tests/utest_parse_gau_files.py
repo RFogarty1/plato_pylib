@@ -205,6 +205,24 @@ class testParseGauCsv(unittest.TestCase):
 		for key in expVals.keys():
 			self.assertEqual( expVals[key], actVals[key] )
 
+
+class testWriteGauCsv(unittest.TestCase):
+	def setUp(self):
+		self.outputDataA = loadExpDataCsvFileA()
+		self.outPath = "testWrite.csv"
+
+	def tearDown(self):
+		os.remove(self.outPath)
+
+	def testFileA(self):
+		expVals = self.outputDataA
+		tCode.writeGauCsvFile(self.outPath, self.outputDataA)
+		actVals = tCode.parseGauCsv(self.outPath)
+		for key in expVals.keys():
+			self.assertEqual( expVals[key], actVals[key] )
+
+
+
 class testGetGauHeaderStr(unittest.TestCase):
 	def setUp(self):
 		basFile = createPartialBasFileA()
@@ -223,6 +241,41 @@ class testGetGauHeaderStr(unittest.TestCase):
 		fileStr = "Mg 2.000000 6 18\n6.000000 -1.287902\n3 0 0    -0.04327913674                           2\n3 1 0      0.3498469233                           0\n3 1 1      0.3498469233                           0\n3 1 2      0.3498469233                           0\n3 2 0      0.8783708167                           0\n3 2 1      0.8783708167                           0\n3 2 2      0.8783708167                           0\n3 2 3      0.8783708167                           0\n3 2 4      0.8783708167                           0\n3 0 0                 0                           0\n3 1 0                 0                           0\n3 1 1                 0                           0\n3 1 2                 0                           0\n3 2 0                 0                           0\n3 2 1                 0                           0\n3 2 2                 0                           0\n3 2 3                 0                           0\n3 2 4                 0                           0\n3\n0 1\n0 1\n1 1\n"
 
 		return fileStr
+
+
+
+class testParseWeightFuncts(unittest.TestCase):
+	def setUp(self):
+		self.inpFile = createGauFileR0_A()
+
+	def tearDown(self):
+		os.remove(self.inpFile)
+
+
+	def testR0FileWeightFuncts(self):
+
+
+
+		expectedWeightAVals = [(0.2256533391134165345, 37.734285273902244739), #(exponent,coefficient)
+		                       (0.27166909389199239699, -225.58343293227176218)] 	
+
+		expectedWeightBVals = [(0.65934295531661524237, -0.18788457858635970732), #(exponent,coefficient)
+		                       (0.88972219525501938797, 0.16118101005396684444)] 	
+		allExpectedVals = [expectedWeightAVals, expectedWeightBVals]
+
+		parsedFile = tCode.parseGauFile(self.inpFile)
+		allActualVals = parsedFile["weightfuncts"]
+
+		for expVals,actVals in itertools.zip_longest(allExpectedVals,allActualVals):
+			for primIdx,expPrimVals in enumerate(expVals):
+				expExponent, expCoeff = expPrimVals[0], expPrimVals[1]		
+				actExponent, actCoeff = actVals.exponents[primIdx],actVals.r0Coeffs[primIdx]
+
+				self.assertAlmostEqual( expExponent, actExponent )
+				self.assertAlmostEqual( expCoeff, actCoeff )
+
+
+
 
 def loadExpDataCsvFileA():
 
@@ -247,6 +300,12 @@ def loadExpDataCsvFileA():
 	nlActB = [(1e-13, -2.4343), (1.9983, 0.0043739), (3.112, 7.1182e-06)]
 	nlFitB = [(1e-13, -2.4739), (1.9983, -0.00078248), (3.112, -8.0493e-09)]
 
+	allWeightFits = [(1e-13,0),(1.0324e-13,0)]
+	weightActA = [(1e-13,0.0016324),(1.0324e-13,0.0018324)]
+	weightActB = [(1e-13,6.0392e-01),(1.0324e-13,6.2351e-01)]
+	weightActC = [(1e-13,5.7083e-01),(1.0324e-13,6.0847e-01)]
+
+
 	outDict = dict()
 	densityVals = tCode.GauCsvGridInfo(denAct,denFit) 
 	neutAtomVals = tCode.GauCsvGridInfo(neutAtomAct,neutAtomFit)
@@ -255,17 +314,22 @@ def loadExpDataCsvFileA():
 	                tCode.GauCsvGridInfo(orbActC,orbFitC) ]
 	nlVals = [ tCode.GauCsvGridInfo(nlActA,nlFitA),
 	           tCode.GauCsvGridInfo(nlActB,nlFitB) ]
+	weightVals = [ tCode.GauCsvGridInfo(weightActA,allWeightFits),
+	               tCode.GauCsvGridInfo(weightActB,allWeightFits),
+	               tCode.GauCsvGridInfo(weightActC,allWeightFits) ]
 
 	outDict["density"] = densityVals
 	outDict["neutAtom".lower()] = neutAtomVals
 	outDict["orbitals"] = orbitalVals
 	outDict["nlpp"] = nlVals
+	outDict["weightfuncts"] = weightVals
 
 	return outDict
 
 def createGauFileR0_A():
 	filePath = os.path.join( os.getcwd(), "gaufileR0_Only.gau" )
-	fileStr = "Mg 2.000000 2 4\n7.500000 -1.512379\n3 0 0     -0.2102929769                           2\n3 1 0       0.121544206                           0\n3 1 1       0.121544206                           0\n3 1 2       0.121544206                           0\n3\n0 1\n0 1\n1 1\n#Fitting parameters - wavefunction\n#n = 3 l = 0 occ = 2.000000 eigenvalue =     -0.2102929769\n#               a                           c\n5\n      0.2256533391134165345       37.734285273902244739\n     0.27166909389199239699      -225.58343293227176218\n     0.32706848862095144748       654.62927000596084781\n     0.39376505702677788712      -1200.7690751643528984\n     0.47406254509279360798        1526.929211213746612\n#Fitting parameters - wavefunction\n#n = 3 l = 1 occ = 0.000000 eigenvalue =       0.121544206\n#               a                           c\n5\n      0.2256533391134165345       17.814973037417860979\n       0.270830897196620346      -104.93193089850436195\n     0.32505335469226059875       301.52446638262307488\n     0.39013157099274675677      -548.60645017933700274\n     0.46823895366151246922       691.88850762815638973\n#Fitting parameters - density\n#               a                           c\n5 1\n     0.24977446411892198497      0.18906107877553832153\n     0.29973495506030567448     -0.27126779867644273958\n     0.38482187439714704569      0.17122695197285703328\n     0.65934295531661524237     -0.18788457858635970732\n     0.88972219525501938797      0.16118101005396684444\n#Fitting parameters - neutral atom potential\n#               a                           c\n5 1\n     0.22031261386712974737     -0.12219239318591164356\n     0.30806498025338135971      -1.1844526542350564124\n     0.43822264944404770715      0.77419438726540679152\n     0.59723068430107395521      -3.4482242270734384526\n     0.77866229002160136652       3.9000745852127369773\n#Fitting parameters - non-local pseudopotential\n# l = 0\n#               a                           c\n1 2\n      1.4174540372999995252     -0.28265638523037667218       -1.595515250029995169\n#Fitting parameters - non-local pseudopotential\n# l = 0\n#               a                           c\n1 2\n      1.4174540055336761757       -2.434344077312082355      0.92424384057699382478\n#Fitting parameters - non-local pseudopotential\n# l = 1\n#               a                           c\n1 1\n     0.99985718149187763348       1.8374666607343681513\n#Fitting parameters - dExc\n#               a                           c\n0 0\n"
+	fileStr = "Mg 2.000000 2 4\n7.500000 -1.512379\n3 0 0     -0.2102929769                           2\n3 1 0       0.121544206                           0\n3 1 1       0.121544206                           0\n3 1 2       0.121544206                           0\n3\n0 1\n0 1\n1 1\n#Fitting parameters - wavefunction\n#n = 3 l = 0 occ = 2.000000 eigenvalue =     -0.2102929769\n#               a                           c\n5\n      0.2256533391134165345       37.734285273902244739\n     0.27166909389199239699      -225.58343293227176218\n     0.32706848862095144748       654.62927000596084781\n     0.39376505702677788712      -1200.7690751643528984\n     0.47406254509279360798        1526.929211213746612\n#Fitting parameters - wavefunction\n#n = 3 l = 1 occ = 0.000000 eigenvalue =       0.121544206\n#               a                           c\n5\n      0.2256533391134165345       17.814973037417860979\n       0.270830897196620346      -104.93193089850436195\n     0.32505335469226059875       301.52446638262307488\n     0.39013157099274675677      -548.60645017933700274\n     0.46823895366151246922       691.88850762815638973\n#Fitting parameters - density\n#               a                           c\n5 1\n     0.24977446411892198497      0.18906107877553832153\n     0.29973495506030567448     -0.27126779867644273958\n     0.38482187439714704569      0.17122695197285703328\n     0.65934295531661524237     -0.18788457858635970732\n     0.88972219525501938797      0.16118101005396684444\n#Fitting parameters - neutral atom potential\n#               a                           c\n5 1\n     0.22031261386712974737     -0.12219239318591164356\n     0.30806498025338135971      -1.1844526542350564124\n     0.43822264944404770715      0.77419438726540679152\n     0.59723068430107395521      -3.4482242270734384526\n     0.77866229002160136652       3.9000745852127369773\n#Fitting parameters - non-local pseudopotential\n# l = 0\n#               a                           c\n1 2\n      1.4174540372999995252     -0.28265638523037667218       -1.595515250029995169\n#Fitting parameters - non-local pseudopotential\n# l = 0\n#               a                           c\n1 2\n      1.4174540055336761757       -2.434344077312082355      0.92424384057699382478\n#Fitting parameters - non-local pseudopotential\n# l = 1\n#               a                           c\n1 1\n     0.99985718149187763348       1.8374666607343681513\n#Fitting parameters - dExc\n#               a                           c\n0 0\n#Fitting parameters - McWeda Weight Functions\n#n(orig orbital) = 3 l(orig orbital) = 0\n#               a                           c\n2\n      0.2256533391134165345       37.734285273902244739\n     0.27166909389199239699      -225.58343293227176218\n#Fitting parameters - McWeda Weight Functions\n#n(orig orbital) = 3 l(orig orbital) = 1\n#               a                           c\n2\n     0.65934295531661524237     -0.18788457858635970732\n     0.88972219525501938797      0.16118101005396684444\n"
+
 	with open(filePath,"wt") as f:
 		f.write(fileStr)
 	return filePath
@@ -280,7 +344,8 @@ def createGauFileR1_A():
 
 def createGauCsvFileA():
 	filePath = os.path.join( os.getcwd(), "gauFileTestA_gau.csv" )
-	fileStr = "Wavefunction, n=3, l=0, occ=2.000000, eigenvalue=    0.06155133048, ngauss=1\nR, Original, Fit\n       1e-13,    0.0034972,      0.34538\n      1.9983,      0.10051,     0.075536\n       3.112,     0.050346,    0.0086574\n\nWavefunction, n=3, l=1, occ=0.000000, eigenvalue=     0.4858438401, ngauss=1\nR, Original, Fit\n       1e-13,      0.14562,      0.42622\n      1.9983,     0.079541,     0.093202\n       3.112,     0.031147,     0.010679\n\nWavefunction, n=3, l=2, occ=0.000000, eigenvalue=      1.060697807, ngauss=1\nR, Original, Fit\n       1e-13,      0.19476,       0.3036\n      1.9983,     0.045897,     0.066399\n       3.112,     0.014045,      0.00761\n\nDensity, ngauss=1, npoly=1\nR, Original, Fit\n       1e-13,   2.4461e-05,     0.084333\n      1.9983,     0.020204,     0.018447\n       3.112,    0.0050693,    0.0021148\n\nNeutral atom potential, ngauss=1, npoly=1\nR, Original, Fit\n       1e-13,       -9.062,      -8.5913\n      1.9983,     -0.35785,     -0.28392\n       3.112,    -0.024727,   -0.0022019\n\nNon-local pseudopotential, ngauss=1, npoly=1\nR, Original, Fit\n       1e-13,     -0.28266,     -0.49161\n      1.9983,    -0.023163,    -0.052189\n       3.112,  -1.7187e-05,   -0.0021353\n\nNon-local pseudopotential, ngauss=1, npoly=1\nR, Original, Fit\n       1e-13,      -2.4343,      -2.4739\n      1.9983,    0.0043739,  -0.00078248\n       3.112,   7.1182e-06,  -8.0493e-09\n\n"
+	fileStr = "Wavefunction, n=3, l=0, occ=2.000000, eigenvalue=    0.06155133048, ngauss=1\nR, Original, Fit\n       1e-13,    0.0034972,      0.34538\n      1.9983,      0.10051,     0.075536\n       3.112,     0.050346,    0.0086574\n\nWavefunction, n=3, l=1, occ=0.000000, eigenvalue=     0.4858438401, ngauss=1\nR, Original, Fit\n       1e-13,      0.14562,      0.42622\n      1.9983,     0.079541,     0.093202\n       3.112,     0.031147,     0.010679\n\nWavefunction, n=3, l=2, occ=0.000000, eigenvalue=      1.060697807, ngauss=1\nR, Original, Fit\n       1e-13,      0.19476,       0.3036\n      1.9983,     0.045897,     0.066399\n       3.112,     0.014045,      0.00761\n\nDensity, ngauss=1, npoly=1\nR, Original, Fit\n       1e-13,   2.4461e-05,     0.084333\n      1.9983,     0.020204,     0.018447\n       3.112,    0.0050693,    0.0021148\n\nNeutral atom potential, ngauss=1, npoly=1\nR, Original, Fit\n       1e-13,       -9.062,      -8.5913\n      1.9983,     -0.35785,     -0.28392\n       3.112,    -0.024727,   -0.0022019\n\nNon-local pseudopotential, ngauss=1, npoly=1\nR, Original, Fit\n       1e-13,     -0.28266,     -0.49161\n      1.9983,    -0.023163,    -0.052189\n       3.112,  -1.7187e-05,   -0.0021353\n\nNon-local pseudopotential, ngauss=1, npoly=1\nR, Original, Fit\n       1e-13,      -2.4343,      -2.4739\n      1.9983,    0.0043739,  -0.00078248\n       3.112,   7.1182e-06,  -8.0493e-09\n\nMcWeda, n=3, l=0, , ngauss=0\nR, Original, Fit\n       1e-13,    0.0016324,            0\n  1.0324e-13,    0.0018324,            0\n\nMcWeda, n=3, l=1, , ngauss=0\nR, Original, Fit\n       1e-13,   6.0392e-01,            0\n  1.0324e-13,   6.2351e-01,            0\n\nMcWeda, n=3, l=2, , ngauss=0\nR, Original, Fit\n       1e-13,   5.7083e-01,            0\n  1.0324e-13,   6.0847e-01,            0\n\n"
+
 	with open(filePath,"wt") as f:
 		f.write(fileStr)
 	return filePath
