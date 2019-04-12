@@ -17,22 +17,24 @@ class testExtractEnergiesFromOutFile(unittest.TestCase):
 	def testTotalElectronicEnergy_tb1(self):
 		''' Test the electronic energy from tb1 is parsed correctly; not this is a cohesive energy measure '''
 		testInpFile = self.filePathDict["tb1fileA"]
-		expectedElectronic = 1.0089780 + -1.8915282
-		actualElectronic = tCode.parsePlatoOutFile(testInpFile)["energies"].getElectronicE()
+		expectedElectronic = 1.0089780 + -1.8915282 
+		actualElectronic = tCode.parsePlatoOutFile(testInpFile)["energies"].electronicCohesiveE
 		self.assertAlmostEqual(expectedElectronic,actualElectronic)
 
 	def testCohesiveElectronicEnergy_tb2(self):
 		testInpFile = self.filePathDict["tb2fileA"]
-		expectedCohesive = -0.03136604
-		actualCohesive = tCode.parsePlatoOutFile(testInpFile)["energies"].getElectronicE()
+#		expectedCohesive = -0.03136604
+		expectedCohesive = -0.031328838
+		actualCohesive = tCode.parsePlatoOutFile(testInpFile)["energies"].electronicCohesiveE
 		self.assertAlmostEqual(expectedCohesive, actualCohesive)
 
-	def testGetErepFromTb2(self):
+
+	def testCohesiveFreeEnergy_tb2(self):
 		testInpFile = self.filePathDict["tb2fileA"]
-		fakeEBand = -0.02
-		expectedERep = -0.011366
-		actualERep = tCode.parsePlatoOutFile(testInpFile)["energies"].getERepFromEBand(fakeEBand)
-		self.assertAlmostEqual(expectedERep, actualERep)
+		expectedCohesive = -0.03136604
+		actualCohesive = tCode.parsePlatoOutFile(testInpFile)["energies"].freeCohesiveE
+		self.assertAlmostEqual(expectedCohesive, actualCohesive, places=5)
+
 
 class testExtractLatticeFromOutFile(unittest.TestCase):
 	def setUp(self):
@@ -83,8 +85,12 @@ class testParseDftFile(unittest.TestCase):
 
 	def testParseEnergy(self):
 		expectedEnergy = -1.7340183
-		actualEnergy = tCode.parsePlatoOutFile(self.filePaths["dftA"])["energies"].getElectronicE()
+		actualEnergy = tCode.parsePlatoOutFile(self.filePaths["dftA"])["energies"].electronicTotalE
 		self.assertAlmostEqual(expectedEnergy, actualEnergy)
+
+	def testDoesntReturnCohesive(self):
+		with self.assertRaises(ValueError):
+			tCode.parsePlatoOutFile(self.filePaths["dftA"])["energies"].electronicCohesiveE
 
 	def testParseNumbAtoms(self):
 		expectedNumbAtoms = 1
@@ -95,7 +101,7 @@ class testEnergyValsClass(unittest.TestCase):
 	def testTotalElectronicTb1(self):
 		testObj = tCode.EnergyVals(e0=2.9,e1=1.1)
 		expectedElectronic = 4.0
-		actualElectronic = testObj.getElectronicE()	
+		actualElectronic = testObj.electronicCohesiveE
 		self.assertAlmostEqual(expectedElectronic, actualElectronic)
 
 
