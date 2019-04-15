@@ -63,6 +63,18 @@ class testUnitCellClass(unittest.TestCase):
 		[self.assertAlmostEqual(expected, actual, places=4) for expected, actual in zip(expectedVolumes, actualVolumes)]
 		[print("Expected Volume:" + str(expected) + "\tActual Volume:" + str(actual)) for expected, actual in zip(expectedVolumes, actualVolumes)]
 
+	def testVolumeSetter(self):
+		''' Test that the volume setter works (set a volume, then get it and check its the set value) '''
+		lattParams = [1.0,2.1,3.2]
+		lattAngles = [90,90,120]
+		testVolume = 2000.5
+		testObj = tCode.UnitCell(lattParams=lattParams, lattAngles=lattAngles)
+
+		testObj.volume = testVolume*2 #so we definitely dont start near the expected final volume
+		testObj.volume = testVolume
+		actVolume = testObj.volume
+		self.assertAlmostEqual(testVolume,actVolume)
+
 	def testConvAngstromToBohr(self):
 		''' Test tCode.UnitCell.convAngstromToBohr correctly works on lattice parameters and resultant volumes (volumes'''
 		''' depend on the tCode.UnitCell.getVolume() implementation) ''' 

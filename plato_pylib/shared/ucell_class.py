@@ -54,10 +54,23 @@ class UnitCell():
 		self._fractCoords = fCoords
 
 
+	@property
+	def volume(self):
+		return self.getVolume()
+
+	@volume.setter
+	def volume(self, value:float):
+		angularTerm = self._calcVolumeAngularTerm()
+		currVolOverAngular = self.volume / angularTerm
+		newVolOverAngular = value / angularTerm
+		scaleFactor = (newVolOverAngular / currVolOverAngular)**(1/3)
+		for key in self.lattParams.keys():
+			self.lattParams[key] *= scaleFactor
+
 	#Non-property Setter Functions
 	def setLattParams(self, lattList:list):
 		oldLattVects = self.getLattVects()
-		self.lattParams = listToLattParams(lattList)
+		self.lattParams = self.listToLattParams(lattList)
 		newLattVects = self.getLattVects()
 		if self.fractCoords is not None:
 			self.fractCoords = getTransformedFractCoords(oldLattVects, newLattVects, self.fractCoords)
@@ -106,11 +119,15 @@ class UnitCell():
 
 	def calcVolumeFromLattParamsAngles(self, lattParams, lattAngles):
 		abcFactor = lattParams["a"]*lattParams["b"]*lattParams["c"]
-		angles = [math.radians(lattAngles["alpha"]), math.radians(lattAngles["beta"]), math.radians(lattAngles["gamma"])]
+		angularTerm = self._calcVolumeAngularTerm()
+		return angularTerm*abcFactor
+
+	def _calcVolumeAngularTerm(self):
+		angles = [math.radians(self.lattAngles["alpha"]), math.radians(self.lattAngles["beta"]), math.radians(self.lattAngles["gamma"])]
 		alpha, beta, gamma = angles
 		sqrtTerm = ( 1 + (2*math.cos(alpha)*math.cos(beta)*math.cos(gamma)) 
 		             - (math.cos(alpha)**2) - (math.cos(beta)**2) - (math.cos(gamma)**2) )
-		return math.sqrt(sqrtTerm)*abcFactor
+		return math.sqrt(sqrtTerm)
 
 	def convAngToBohr(self):
 		for key in self.lattParams.keys():
