@@ -10,7 +10,7 @@ sys.path.append('..')
 
 
 import plato_pylib.parseOther.parse_castep_files as tCode
-
+import plato_pylib.shared.ucell_class as UCell
 
 class testParseCastepOutFile(unittest.TestCase):
 
@@ -188,6 +188,33 @@ class testParseCellFile(unittest.TestCase):
 
 		for key in expectedVals.keys():
 			self.assertEqual(expectedVals[key], actualVals[key.lower()])
+
+
+class testGeomStringsFromUnitCell(unittest.TestCase):
+	''' Test we can correctly get strings for castep cell file from the UnitCell Class '''
+	def setUp(self):
+		testLattParamsA = [3.209401, 3.209331, 5.210802] #Actually angstrom, but code assumes bohr and no need to convert in this test code
+		testLattAnglesA = [90.0, 90.0, 120.000728]
+		testFractCoordsA = [ [0.0,0.0,0.0,"Mg"], [0.333333,0.666667,0.50,"Mg"] ]
+		self.testCellA = UCell.UnitCell(lattParams=testLattParamsA , lattAngles=testLattAnglesA)
+		self.testCellA.fractCoords = testFractCoordsA
+		self.expLattCartStrA = "bohr\n3.209401 0 0\n-1.604701 2.779342 0\n0 0 5.210802"
+		self.expFractCoordsStrA = "Mg 0.000000 0.000000 0.000000\nMg 0.333333 0.666667 0.500000"
+		self.expDictSectionA = {"lattice_cart": self.expLattCartStrA,
+		                        "positions_frac": self.expFractCoordsStrA}
+
+	def testGetCellGeomDictSectionFromUCell(self):
+		actDict = tCode.getCellGeomDictSectionFromUCell(self.testCellA)
+		for key in self.expDictSectionA.keys():
+			self.assertEqual( self.expDictSectionA[key], actDict[key] )
+
+	def testGetFractPosBlockStr(self):
+		actStr = tCode._getCastepFractPosStrFromUCellClass(self.testCellA)
+		self.assertEqual(self.expFractCoordsStrA,actStr)
+
+	def testGetLattCartBlock(self):
+		actStr = tCode._getCastepLattCartFromUCellClass(self.testCellA)
+		self.assertEqual(self.expLattCartStrA,actStr)
 
 
 def createCastepCellFileA():

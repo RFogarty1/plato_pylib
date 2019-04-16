@@ -113,13 +113,6 @@ class testUnitCellClass(unittest.TestCase):
 			currExp, currAct = expectedLattVects[vectIdx], actualLattVects[vectIdx]
 			[self.assertAlmostEqual(exp,act,3) for exp,act in it.zip_longest(currExp, currAct)]
 
-	def testCastepCellStr(self):
-		units = "bohr"
-
-		expectedStr = "bohr\n3.746172 0.0 0.0\n1.8730860000000005 3.244280118945958 0.0\n1.8730860000000005 1.0814267063153196 3.0587366295671807"
-		actualStr = self.testObjA.getCastepCellStr()
-
-		self.assertEqual(expectedStr, actualStr)
 
 if __name__ == '__main__':
 	unittest.main()

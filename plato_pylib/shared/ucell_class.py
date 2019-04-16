@@ -134,11 +134,19 @@ class UnitCell():
 			self.lattParams[key] *= ANG_TO_BOHR
 
 
+	#TODO: Eventually this needs to be removed. It can be accesed through a function in parseCastep at current
 	def getCastepCellStr(self, units="bohr"):
 		lattVects = self.getLattVects()
 		lattStrVects = list()
+		fmt = "{:.7g}"
+		zeroTol = 1e-8 #If a component is below this, then we treat it as zero
+
 		for currVect in lattVects:
-			 lattStrVects.append(" ".join([str(x) for x in currVect]))
+			for idx,unused in enumerate(currVect):
+				currVect[idx] = currVect[idx] if abs(currVect[idx])>zeroTol else 0
+
+		for currVect in lattVects:
+			 lattStrVects.append(" ".join([ fmt.format(x) for x in currVect]))
 
 		lattStrings =  "\n".join(lattStrVects)
 		outStr = units + '\n' + lattStrings

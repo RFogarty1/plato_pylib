@@ -80,6 +80,27 @@ def writeCastepCellFileFromTokens(outFilePath, tokens: "dict {keyword:value}"):
 		f.write(fileStr)	
 
 
+
+def getCellGeomDictSectionFromUCell(unitCell, units='bohr'):
+	outDict = dict()
+	outDict["lattice_cart"] = _getCastepLattCartFromUCellClass(unitCell, units=units)
+	outDict["positions_frac"] = _getCastepFractPosStrFromUCellClass(unitCell)
+	return outDict
+
+def _getCastepLattCartFromUCellClass(unitCell, units='bohr'):
+	return unitCell.getCastepCellStr(units=units)
+
+def _getCastepFractPosStrFromUCellClass(unitCell):
+	defFormat = unitCell.fractCoords
+	outStr = ""
+	fmt = "{} {:.6f} {:.6f} {:.6f}"
+	for x in defFormat:
+		currElement = x[-1]
+		outStr += fmt.format(currElement,*x[:3]) + '\n'
+	outStr = outStr.strip()
+	return outStr
+		
+
 ###########################################################################
 # Function takes a *.castep file from castep and extracts k points, 
 # eigenvalues and the fermi energy in dictionary format
