@@ -13,6 +13,15 @@ class testUnitCellClass(unittest.TestCase):
 		lattAngles = [60.0,60.0,60.0]
 		self.testObjA = tCode.UnitCell(lattParams=lattParams, lattAngles=lattAngles)
 
+		self.testLattVectsA = [ [2.0 ,0.0     , 0.0     ], #Not neccesarily relted to the above (though might be, im unsure)
+		                        [0.0, 2.0, 0.0     ],
+		                        [0.0     , 3.40000, 12.09628] ] 
+
+		self.testLattVectsB = [ [4.8,0.0,0.0], #These are in the native format, hence can test the lattVects getter/setter
+		                        [1.6,0.5,0.0],
+		                        [3.5,1.7,12.2] ]
+
+
 	def testCorrectLatticeParams_constructor(self):
 		''' Test tCode.UnitCell class correctly converts lattice param list into a dict '''
 		inpLatticeParams = [3.5, 2.04, 1.004]
@@ -35,9 +44,7 @@ class testUnitCellClass(unittest.TestCase):
 	def testCorrectLattParamsAnglesFromVectors(self):
 		''' Test tCode.UnitCell class correctly converts vectors to lattice params and angles (hcp)'''
 		
-		latticeVectors = [ [2.0 ,0.0     , 0.0     ],
-		                   [0.0, 2.0, 0.0     ],
-		                   [0.0     , 3.40000, 12.09628] ] 
+		latticeVectors = self.testLattVectsA
 
 		expectedLattParams = [2, 2, 12.56503044]
 		expectedLattAngles = [74.3004871146, 90.0, 90.0]
@@ -48,6 +55,13 @@ class testUnitCellClass(unittest.TestCase):
 
 		[self.assertAlmostEqual(x,y) for x,y in zip(expectedLattParams, actualLattParams)]
 		[self.assertAlmostEqual(x,y) for x,y in zip(expectedLattAngles, actualLattAngles)]
+
+	def testLattVectsSetter(self):
+		''' Test that setting lattice vectors works correctly (the getter returns the value set) '''
+		self.testObjA.lattVects = self.testLattVectsB
+		for exp,act in zip(self.testLattVectsB,self.testObjA.lattVects):
+			[self.assertAlmostEqual(x,y) for x,y in zip(exp,act)]
+
 
 	def testGetVolume_lattParamsAngles(self):
 		''' Test getVolume works when the object has lattice parameters and angles defined '''

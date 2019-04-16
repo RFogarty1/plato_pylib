@@ -6,6 +6,12 @@ import itertools
 from plato_pylib.shared.ucell_class import UnitCell, getTransformedFractCoords
 
 
+def tokenizeCastepCellFileAndRemoveBlockFromKeys(cellFilePath:str)->"lower case dict":
+	startDict = tokenizeCastepCellFile(cellFilePath)
+	outDict = dict()
+	for key in startDict.keys():
+		outDict[key.lower().strip().replace("%block ","")] = startDict[key]
+	return outDict
 
 def tokenizeCastepCellFile(cellFilePath:str)->"lower case dict":
 	with open(cellFilePath, "rt") as f:

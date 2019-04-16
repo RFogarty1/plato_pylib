@@ -39,20 +39,20 @@ class UnitCell():
 			return None
 		outList = list()
 		for fCoords, element in it.zip_longest(self._fractCoords, self._elementList):
-			fCoords.append(element)
-			outList.append(fCoords)
+			tempList = list(fCoords)
+			tempList.append(element)
+			outList.append(tempList)
 		return outList
 
 	@fractCoords.setter
 	def fractCoords(self, value: "list of [x,y,z,Element]"):
 		fCoords = list()
 		eList = list()
-		for x in value:
-			fCoords.append(x[:3])
+		for x in list(value):
+			fCoords.append(list(x[:3]))
 			eList.append(x[3])
 		self._elementList = eList
 		self._fractCoords = fCoords
-
 
 	@property
 	def volume(self):
@@ -67,20 +67,32 @@ class UnitCell():
 		for key in self.lattParams.keys():
 			self.lattParams[key] *= scaleFactor
 
+	#Note that a getter is still exposed for use of keywords (e.g. disabling error checks)
+	@property
+	def lattVects(self, **kwargs):
+		return self.getLattVects()
+
+	@lattVects.setter
+	def lattVects(self, value):
+		lattParams, lattAngles = lattParamsAndAnglesFromLattVects(value)
+		self.setLattParams(lattParams)
+		self.setLattAngles(lattAngles)
+
 	#Non-property Setter Functions
 	def setLattParams(self, lattList:list):
 		oldLattVects = self.getLattVects()
 		self.lattParams = self.listToLattParams(lattList)
 		newLattVects = self.getLattVects()
+
 		if self.fractCoords is not None:
-			self.fractCoords = getTransformedFractCoords(oldLattVects, newLattVects, self.fractCoords)
+			self._fractCoords = getTransformedFractCoords(oldLattVects, newLattVects, self._fractCoords)
 
 	def setLattAngles(self, lattAngles:list):
 		oldLattVects = self.getLattVects()
-		self.lattAngles = listToLattAngles(lattAngles)
+		self.lattAngles = self.listToLattAngles(lattAngles)
 		newLattVects = self.getLattVects()
 		if self.fractCoords is not None:
-			self.fractCoords = getTransformedFractCoords(oldLattVects, newLattVects, self.fractCoords)
+			self._fractCoords = getTransformedFractCoords(oldLattVects, newLattVects, self._fractCoords)
 
 	#Non-property Getter Functions
 	def getLattParamsList(self):
