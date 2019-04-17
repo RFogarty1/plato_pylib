@@ -88,7 +88,6 @@ class TestApplyStrain(unittest.TestCase):
 		strainCoeff = 3
 		n,m = 3,6
 
-
 		expFractCoords = [list(x) for x in self.testUCellA.fractCoords]
 		expUCell = UCell.UnitCell.fromLattVects(self.outputVectsA_strain3_36)
 		expAngles, expParams = expUCell.getLattAnglesList(), expUCell.getLattParamsList()
@@ -101,6 +100,29 @@ class TestApplyStrain(unittest.TestCase):
 		[self.assertAlmostEqual(exp,act) for exp,act in it.zip_longest(expAngles,actAngles)]
 		for expFract, actFract in it.zip_longest(expFractCoords,actFractCoords):
 			[self.assertAlmostEqual(exp,act) for exp,act in it.zip_longest(expFract,actFract)]
+
+
+
+class TestCalcElastic(unittest.TestCase):
+
+	def setUp(self):
+		self.strainValsA = [-0.04,-0.03,-0.02,-0.01,0.0,0.01,0.02,0.03,0.04]
+		self.energyValsA = [1.008, 1.0045, 1.002, 1.0005, 1, 1.0005, 1.002, 1.0045, 1.008]
+		self.refVolA = 50
+		self.expC11ConstA = 0.1
+
+	def testCalcElasticC11(self):
+		n,m = 1,1
+		elasticFitRes = tCode.calcElasticConstantFromStrainEnergies(self.strainValsA, self.energyValsA, self.refVolA, n, m)
+		self.assertAlmostEqual( self.expC11ConstA, elasticFitRes.elasticConst, places=5 )
+
+	def testCalcElasticC23(self):
+		n,m = 2,3
+		nElastic, mElastic = 0.2,0.3
+		expElastic = self.expC11ConstA - nElastic - mElastic
+		elasticFitRes = tCode.calcElasticConstantFromStrainEnergies(self.strainValsA, self.energyValsA, self.refVolA, n, m,
+		                                                            nElastic=nElastic, mElastic=mElastic)
+		self.assertAlmostEqual( expElastic, elasticFitRes.elasticConst, places=5 )
 
 
 if __name__ == '__main__':

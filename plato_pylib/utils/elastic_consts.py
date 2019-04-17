@@ -1,13 +1,56 @@
 
 
-
+import itertools as it
 import numpy as np
 import plato_pylib.shared.ucell_class as UCell
 
+from scipy.optimize import minimize 
 #Purpose of these functions are to help calculate elastic constants
 
 
 _STRAIN_MATRIX_DICT = dict()
+
+
+#---------->Functions to calculate the elastic constant from output calcs<----------
+
+def calcElasticConstantFromStrainEnergies(strainVals, energyVals, refVol, n, m, nElastic=None, mElastic=None):
+	#Step 1 = calculate 2nd deriv of strain vs energy curve
+	objFunct = _createObjFunctFor2ndDerivFit(strainVals,energyVals)
+	startVals = [0.0 for x in range(3)]
+	fitRes = minimize(objFunct, startVals)
+	print("Got a value of {} for the 2nd deriv".format(fitRes.x[0]))
+
+	#Step 2 = calculate elastic constant based on that info
+	secondDeriv = fitRes.x[0]
+	leftSide = fitRes.x[0] * (1/refVol)
+	if n==m:
+		elastic = leftSide
+	else:
+		elastic = leftSide - mElastic - nElastic
+
+	#Step 3 = create object with relevant info
+	outObj = FitResultElastic( fitRes, elastic, refVol, (n,m) )
+	return outObj
+
+#For now limit to x**2 polynomial fit for the minimize interface
+def _createObjFunctFor2ndDerivFit(strainVals,energies):
+	def objFunct(params):
+		predEnergies = list()
+		for x in strainVals:
+			result = (params[0]*(x**2)) + (params[1]*x) + (params[2])
+			predEnergies.append(result)
+		outVal = sum( [ (b-a)**2 for b,a in it.zip_longest(energies, predEnergies)] )
+		return outVal
+	return objFunct
+
+
+
+class FitResultElastic:
+	def __init__(self, fitObj, elasticConst, refVol, nmTuple):
+		self.fitObj = fitObj
+		self.elasticConst = elasticConst
+		self.refVol = refVol
+		self.nm = nmTuple
 
 
 #---------->Functions related to generate the strained files<-------------------
