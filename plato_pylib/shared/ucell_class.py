@@ -9,6 +9,26 @@ import numpy as np
 ANG_TO_BOHR = 1.8897259886
 
 
+
+
+
+
+
+def _getTransformedFractCoordsWithElements(origLattVects:"list of lists [[v1],[v2],[v3]]", finalLattVects, origFractCoords:"list of lists"):
+	tempFractCoords = list()
+	for x in origFractCoords:
+		tempFractCoords.append( list(x[:3]) )
+
+	transCoords = getTransformedFractCoords(origLattVects, finalLattVects, tempFractCoords)
+
+	finalFractCoords = list()
+	for orig,trans in zip(origFractCoords,transCoords):
+		currList = list(trans)
+		currList.append( orig[-1] )
+		finalFractCoords.append( currList )
+
+	return finalFractCoords
+
 def getTransformedFractCoords(origLattVects:"list of lists [[v1],[v2],[v3]]", finalLattVects, origFractCoords:"list of lists"):
 	lattVectsOrig = np.array(origLattVects).transpose() #1 column = 1 vector
 	lattVectsFinal = np.array(finalLattVects).transpose()
@@ -20,6 +40,9 @@ def getTransformedFractCoords(origLattVects:"list of lists [[v1],[v2],[v3]]", fi
 
 	return finalFractCoords
 
+
+
+
 class UnitCell():
 	def __init__(self,**kwargs):
 		kwargs = {k.lower():v for k,v in kwargs.items()}
@@ -27,11 +50,95 @@ class UnitCell():
 		self.lattAngles = self.listToLattAngles( kwargs.get( "lattAngles".lower(), None ) )
 		self._fractCoords = kwargs.get("fractCoords".lower(), None)
 		self._elementList = kwargs.get("elementList".lower(), None)
+		self._eqTolPlaces = 5
+
+
+	def __eq__(self,other):
+		outVal = True
+		if self._eqTolPlaces != other._eqTolPlaces:
+			outVal = False
+
+		allowedDiff = 10**(-1*self._eqTolPlaces)
+
+		#Note I did plan to use cart instead of fractional since i can currently get sorted output easily
+		#But it messes up a bit when values are the same due to (i guess) float errors
+#		if (self.fractCoords is None) and (other.fractCoords is None):
+#			pass
+#		elif (self.fractCoords is None) or (other.fractCoords is None):
+#			outVal = False
+#		else:
+#			cartA, cartB = self.getCartCoords(sort=True), other.getCartCoords(sort=True)
+#			for atomA,atomB in it.zip_longest(cartA,cartB):
+#				if atomA[-1] != atomB[-1]:
+#					outVal = False
+#				else:
+#					if not all( [a-b < allowedDiff for a,b in it.zip_longest(atomA[:3],atomB[:3])] ):
+#						outVal = False
+#						break
+#						
+				
+
+		#Purely numberical arrays 
+		relAttrs = ["_fractCoords"]
+		for attr in relAttrs:
+			attA,attB = getattr(self,attr), getattr(other,attr)
+			if (attA is None) and (attB is None):
+				pass
+			elif (attA is None) or (attB is None):
+				outVal = False
+				break
+			else:
+				if len(attA) != len(attB):
+					outVal = False
+					break
+				for x,y in it.zip_longest(attA,attB):
+					if not all( [a-b < allowedDiff for a,b in it.zip_longest(x,y)] ):
+						outVal = False
+						break
+
+		#Dictionaries of numeric vals
+		relAttrs = ["lattParams","lattAngles"]
+		for attr in relAttrs:
+			attA,attB = getattr(self,attr), getattr(other,attr)
+			if (attA is None) and (attB is None):
+				pass
+			elif (attA is None) or (attB is None):
+				outVal = False
+				break
+			else:
+				keysA, keysB = sorted(attA.keys()), sorted(attB.keys())
+				for keyA,keyB in it.zip_longest(keysA,keysB):
+					if keyA!=keyB:
+						outVal = False
+						break
+				else:
+					for key in keysA:
+						if abs(attA[key]-attB[key]) > allowedDiff:
+							outVal = False
+							break
+
+		#Other
+		if (self._elementList is None) and (other._elementList is None):
+			pass
+		elif (self._elementList is None) or (other._elementList is None):
+			outVal = False
+		else:
+			if self._elementList != other._elementList:
+				outVal = False
+
+		return outVal
+
 
 	@classmethod
-	def fromLattVects(cls, lattVectors:"iterable, len=3"):
+	def fromLattVects(cls, lattVectors:"iterable, len=3", fractCoords = None):
 		lattParams, lattAngles = lattParamsAndAnglesFromLattVects(lattVectors)
-		return cls(lattParams=lattParams, lattAngles = lattAngles)
+		outObj = cls(lattParams=lattParams, lattAngles = lattAngles)
+		if fractCoords is not None:
+			finalLattVects = outObj.lattVects
+			transFractCoords = _getTransformedFractCoordsWithElements(lattVectors, finalLattVects, fractCoords)
+			outObj.fractCoords = transFractCoords
+		return outObj
+
 
 	@property
 	def fractCoords(self):
@@ -93,6 +200,27 @@ class UnitCell():
 		newLattVects = self.getLattVects()
 		if self.fractCoords is not None:
 			self._fractCoords = getTransformedFractCoords(oldLattVects, newLattVects, self._fractCoords)
+
+
+	def getCartCoords(self,sort=False):
+		cartCoords = getCartCoordsFromFractCoords(self.lattVects, self.fractCoords)
+		if sort is False:
+			return cartCoords
+
+		#Convert the numbers to an np array, sort that and convert back to list
+		cCoords = np.array([x[:3] for x in cartCoords])
+		sortOrder = np.lexsort( (cCoords[:,2],cCoords[:,1],cCoords[:,0]) )
+		outputCoords = cCoords[sortOrder].tolist()
+		outputElementList = [cartCoords[i][3] for i in sortOrder]
+		
+		outputCartCoords = list()
+		for coords,element in it.zip_longest(outputCoords,outputElementList):
+			currList = list(coords)
+			currList.append(element)
+			outputCartCoords.append(currList)
+
+		return outputCartCoords
+
 
 	#Non-property Getter Functions
 	def getLattParamsList(self):
@@ -230,4 +358,13 @@ def lattParamsAndAnglesToLattVects(lattParams:"[a,b,c]", lattAngles:"[alpha,beta
 
 	return lattVects
 
+def getCartCoordsFromFractCoords(lattVects, fractCoords):
+	outList = list()
+	for currAtom in fractCoords:
+		fromA  = [currAtom[0]*x for x in lattVects[0]]
+		fromB  = [currAtom[1]*x for x in lattVects[1]]
+		fromC  = [currAtom[2]*x for x in lattVects[2]]
+		outVect = [a+b+c for a,b,c in zip(fromA,fromB,fromC)] + [currAtom[3]] #Last part should be the element
+		outList.append(outVect)
+	return outList
 

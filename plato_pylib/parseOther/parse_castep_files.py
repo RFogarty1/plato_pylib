@@ -188,12 +188,19 @@ def parseCastepUnitCellSection(fileList:list, startPos:int):
 
 	#Transform fract co-ords the same way as the input cell vectors (output cell vectors are directly 
 	#from the angles and lengths
-	unitCellObj = UnitCell(lattParams=lattParams, lattAngles=lattAngles)
-	lattVectsFromCell = unitCellObj.getLattVects()
-	transFractCoords = getTransformedFractCoords(lattVectsFromFile, lattVectsFromCell, fractCoords)
-	for idx, unused in enumerate(transFractCoords):
-		transFractCoords[idx].append( atomsInOrder[idx] )
-	unitCellObj.fractCoords = transFractCoords
+#	unitCellObj = UnitCell(lattParams=lattParams, lattAngles=lattAngles)
+	for idx, unused in enumerate(fractCoords):
+		fractCoords[idx].append( atomsInOrder[idx] )
+
+	unitCellObj = UnitCell.fromLattVects(lattVectsFromFile, fractCoords=fractCoords)
+#	lattVectsFromCell = unitCellObj.getLattVects()
+
+
+
+#	transFractCoords = getTransformedFractCoords(lattVectsFromFile, lattVectsFromCell, fractCoords)
+#	for idx, unused in enumerate(transFractCoords):
+#		transFractCoords[idx].append( atomsInOrder[idx] )
+#	unitCellObj.fractCoords = transFractCoords
 
 	return unitCellObj, lineIdx
 

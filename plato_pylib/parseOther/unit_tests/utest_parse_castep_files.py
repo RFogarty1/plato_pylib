@@ -93,10 +93,12 @@ class testParseCastepOutFile(unittest.TestCase):
 			actualLatticeVects[fileKey] = currObj.getLattVects()
 	
 		for filekey in filePathKeys:
-			self.assertEqual(expectedLattParams[filekey], actualLattParams[filekey])
-			self.assertEqual(expectedLattAngles[filekey], actualLattAngles[filekey])
+			for pA,pB in itertools.zip_longest(expectedLattParams[filekey], actualLattParams[filekey]):
+				self.assertAlmostEqual(pA,pB)
+			for angA,angB in itertools.zip_longest(expectedLattAngles[filekey],actualLattAngles[filekey]):
+				self.assertAlmostEqual(angA,angB)
 			for vectA,vectB in itertools.zip_longest(expectedLatticeVects[filekey], actualLatticeVects[filekey]):
-				[self.assertAlmostEqual(a,b) for a,b in itertools.zip_longest(vectA,vectB)]
+				[self.assertAlmostEqual(a,b,places=5) for a,b in itertools.zip_longest(vectA,vectB)]
 			for coA,coB in itertools.zip_longest(expectedFractCoords[filekey], actualFractCoords[filekey]):
 				[self.assertAlmostEqual(a,b, delta=1e-7) for a,b in itertools.zip_longest(coA,coB)]
 
