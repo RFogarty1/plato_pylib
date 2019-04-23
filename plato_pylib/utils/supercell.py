@@ -26,7 +26,7 @@ def _getSuperCellOneDim(unitCell,dimIdx:"0,1,2 for x,y,z", multiple:"int, number
 	startCartCoords = UCell.getCartCoordsFromFractCoords(startCellVects, startFractCoords)
 
 	#Step 2 = figure out the translation vector required
-	transVector = [startCellParams[dimIdx]*x for x in startCellVects[dimIdx]]
+	transVector = [startCellParams[dimIdx]*x for x in unitVects[dimIdx]]
 
 	#Step 3 = Get the cartesian co-ordinates for new atoms (translate n-times from the translation vector)
 	endCartCoords = UCell.getCartCoordsFromFractCoords(startCellVects, startFractCoords)

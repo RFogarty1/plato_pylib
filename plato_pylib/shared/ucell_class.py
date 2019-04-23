@@ -92,7 +92,7 @@ class UnitCell():
 					outVal = False
 					break
 				for x,y in it.zip_longest(attA,attB):
-					if not all( [a-b < allowedDiff for a,b in it.zip_longest(x,y)] ):
+					if not all( [abs(a-b) < allowedDiff for a,b in it.zip_longest(x,y)] ):
 						outVal = False
 						break
 

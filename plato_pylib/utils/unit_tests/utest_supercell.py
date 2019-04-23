@@ -32,6 +32,7 @@ class testCreateSuperCells(unittest.TestCase):
 		                   [0.166666665, 0.666666665 , 0.5 , "Mg"],
 		                   [0.5        , 0.5         , 0.0 , "Mg"],
 		                   [0.666666665, 0.666666665 , 0.5 , "Mg"]]
+
 	
 
 		expectedUCell = UCell.UnitCell.fromLattVects( lattVects_221, fractCoords_221 )
@@ -39,7 +40,6 @@ class testCreateSuperCells(unittest.TestCase):
 
 		self.assertTrue(expectedUCell==supCell)
 
-#	@unittest.skip("")
 	def testCellB_3x1x2(self):
 		lattVects_312 = [ [18.18, 0.0        , 0],
 		                  [ 3.0300000097, 5.248113941, 0],
@@ -60,6 +60,7 @@ class testCreateSuperCells(unittest.TestCase):
 		
 		expectedUCell = UCell.UnitCell.fromLattVects( lattVects_312, fractCoords_312 )
 		supCell = tCode.superCellFromUCell( self.startUCellA , [3,1,2])
+
 
 		self.assertTrue(expectedUCell==supCell)
 
