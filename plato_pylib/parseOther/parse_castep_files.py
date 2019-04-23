@@ -6,6 +6,31 @@ import itertools
 from plato_pylib.shared.ucell_class import UnitCell, getTransformedFractCoords
 
 
+def unitCellObjFromCastepCellFile(cellFilePath:str):
+	tokFile = tokenizeCastepCellFileAndRemoveBlockFromKeys(cellFilePath)
+	return _getUnitCellObjFromTokenizedCastepCellFile(tokFile)
+
+
+def _getUnitCellObjFromTokenizedCastepCellFile(tokFile:dict):
+
+	#Step 1 = Get lattice vectors
+	lattVectStr = [x for x in tokFile["lattice_cart"].split("\n")[1:]]
+	lattVects = list()
+	for vectStr in lattVectStr:
+		currVect = [float(x) for x in vectStr.replace("\t"," ").split()]
+		lattVects.append( currVect )
+
+	#Step 2 = Get the fractional co-ords
+	fractCoords = list()
+	fractCoordStrList = [x for x in tokFile["positions_frac"].split("\n")]
+
+	for fractStr in fractCoordStrList:
+		element, x, y, z = fractStr.replace("\t"," ").strip().split()
+		currFract = [float(x), float(y), float(z), element]
+		fractCoords.append(currFract)
+
+	return UnitCell.fromLattVects(lattVects,fractCoords=fractCoords)
+
 def tokenizeCastepCellFileAndRemoveBlockFromKeys(cellFilePath:str)->"lower case dict":
 	startDict = tokenizeCastepCellFile(cellFilePath)
 	outDict = dict()
@@ -71,11 +96,13 @@ def modCastepCellFile(inpFilePath:str, fieldValDict: "dict {keyword:value}"):
 
 	writeCastepCellFileFromTokens(inpFilePath, tokenizedOutFile)
 
-def writeCastepCellFileFromTokens(outFilePath, tokens: "dict {keyword:value}"):
+def writeCastepCellFileFromTokens(outFilePath, inpTokens: "dict {keyword:value}"):
+	tokens = {k.lower():v for k,v in inpTokens.items()}
 	fileStr = "\n"
+	reqBlockKeys = ["species_pot"]
 	for key, val in tokens.items():
 		endVal = "\n\n"
-		if val.strip().count('\n') > 0 or key.find("%block") != -1:
+		if val.strip().count('\n') > 0 or key.find("%block") != -1 or (key in reqBlockKeys):
 			key = "%block " + key.replace("%block ","") + '\n'
 			endVal = "\n%endblock " + key.replace("%block ","") + "\n\n"
 		else: 

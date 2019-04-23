@@ -191,6 +191,18 @@ class testParseCellFile(unittest.TestCase):
 		for key in expectedVals.keys():
 			self.assertEqual(expectedVals[key], actualVals[key.lower()])
 
+	def testGetUnitCellObjFromCellFile(self):
+		lattVects = [ [ 6.0649000000, 0.0000000000, 0.0000000000],
+		              [-3.0325000000, 5.2524000000, 0.0000000000],
+		              [ 0.0000000000, 0.0000000000, 9.8470000000] ]
+
+		expFractCoords = [ [0.0, 0.0, 0.0, "Mg"],
+		                   [0.33333333, 0.66666667, 0.5, "Mg"] ]
+
+		expObj = UCell.UnitCell.fromLattVects(lattVects, fractCoords = expFractCoords )
+		actObj = tCode.unitCellObjFromCastepCellFile(self.testCellFileA)
+		self.assertEqual(expObj,actObj)
+
 
 class testGeomStringsFromUnitCell(unittest.TestCase):
 	''' Test we can correctly get strings for castep cell file from the UnitCell Class '''
