@@ -368,3 +368,18 @@ def getCartCoordsFromFractCoords(lattVects, fractCoords):
 		outList.append(outVect)
 	return outList
 
+
+def getFractCoordsFromCartCoords(lattVects, cartCoords):
+	outList = list()
+	for currAtom in cartCoords:
+		outList.append( _getFractCoordsFromCartOneAtom(lattVects, currAtom[:3]) + [currAtom[-1]] ) 
+	return outList
+
+def _getFractCoordsFromCartOneAtom(lattVects:"3x3 iterxiter", cartCoords:"3 item list"):
+	vMatrix = np.array(lattVects).transpose()
+
+	fractVals = ( np.linalg.inv(vMatrix) @ np.array(cartCoords) ).tolist()
+	return fractVals
+
+
+

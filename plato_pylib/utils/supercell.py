@@ -46,7 +46,7 @@ def _getSuperCellOneDim(unitCell,dimIdx:"0,1,2 for x,y,z", multiple:"int, number
 		newCellVects.append(currVect)
 
 	#Step 5 = Get new fractional co-ordinates
-	fractCoords = getFractCoordsFromCartCoords(newCellVects,endCartCoords)
+	fractCoords = UCell.getFractCoordsFromCartCoords(newCellVects,endCartCoords)
 
 	#Step 6 = Create the output object
 	return UCell.UnitCell.fromLattVects( newCellVects, fractCoords=fractCoords)
@@ -58,16 +58,4 @@ def _getUnitVectorFromVector(vector:"iter"):
 	return [x/lenVect for x in vector]
 
 
-
-def getFractCoordsFromCartCoords(lattVects, cartCoords):
-	outList = list()
-	for currAtom in cartCoords:
-		outList.append( _getFractCoordsFromCartOneAtom(lattVects, currAtom[:3]) + [currAtom[-1]] ) 
-	return outList
-
-def _getFractCoordsFromCartOneAtom(lattVects:"3x3 iterxiter", cartCoords:"3 item list"):
-	vMatrix = np.array(lattVects).transpose()
-
-	fractVals = ( np.linalg.inv(vMatrix) @ np.array(cartCoords) ).tolist()
-	return fractVals
 

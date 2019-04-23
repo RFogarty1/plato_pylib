@@ -1,9 +1,67 @@
 #!/usr/bin/python3
 
 import math
-import itertools
+import itertools as it
 
-from plato_pylib.shared.ucell_class import UnitCell, getTransformedFractCoords
+import plato_pylib.shared.ucell_class as UCell
+
+
+def parseCastepGeomFile(castepGeomFile:str)->"list of dicts":
+	with open(castepGeomFile,"rt") as f:
+		fileAsList = f.readlines()
+
+	allIters = list()	
+	lIdx, maxIdx = 0, len(fileAsList)
+	while lIdx < maxIdx:
+		line = fileAsList[lIdx]
+		if line.find("<--") != -1:
+			lIdx, parsedSection = _parseSingleIterGeomFile(fileAsList,lIdx)
+			allIters.append(parsedSection)
+		else:
+			lIdx += 1
+	return allIters
+
+
+def _parseSingleIterGeomFile(fileAsList,filePos)->"int, newFilePos":
+
+	maxIdx =  len(fileAsList)
+	#Get cell vectors (later can make it get energies too)
+	filePos += 1
+	cellVecs = list()
+	for x in range(3):
+		currLine = fileAsList[filePos].strip()
+		currVect = [float(x) for x in currLine.split()[:3]]
+		cellVecs.append(currVect)
+		filePos += 1
+
+	#Get the Cartesian co-ordinates + skip forces for now
+	elementList = list()
+	cartCoordList = list()
+	while filePos < maxIdx:
+		line = fileAsList[filePos]
+		if line.find("<--") == -1:
+			break
+		elif line.find("<-- R") != -1:
+			currCart = [float(x) for x in line.strip().split()[2:5]]
+			cartCoordList.append(currCart)
+			elementList.append( line.strip().split()[0] )
+			filePos += 1
+		else:
+			filePos += 1
+
+	#Combine info into a unitCell object + dict
+	fractCoords = list()
+	fractXYZ = UCell.getFractCoordsFromCartCoords(cellVecs,cartCoordList)
+
+	for fCoord,element in it.zip_longest(fractXYZ,elementList):
+		currFracts = [x for x in fCoord] + [element]
+		fractCoords.append(currFracts)
+
+	outDict = dict()
+	outDict["unitCell"] = UCell.UnitCell.fromLattVects(cellVecs,fractCoords=fractCoords)
+
+	return filePos, outDict
+
 
 
 def unitCellObjFromCastepCellFile(cellFilePath:str):
@@ -29,7 +87,7 @@ def _getUnitCellObjFromTokenizedCastepCellFile(tokFile:dict):
 		currFract = [float(x), float(y), float(z), element]
 		fractCoords.append(currFract)
 
-	return UnitCell.fromLattVects(lattVects,fractCoords=fractCoords)
+	return UCell.UnitCell.fromLattVects(lattVects,fractCoords=fractCoords)
 
 def tokenizeCastepCellFileAndRemoveBlockFromKeys(cellFilePath:str)->"lower case dict":
 	startDict = tokenizeCastepCellFile(cellFilePath)
@@ -215,19 +273,10 @@ def parseCastepUnitCellSection(fileList:list, startPos:int):
 
 	#Transform fract co-ords the same way as the input cell vectors (output cell vectors are directly 
 	#from the angles and lengths
-#	unitCellObj = UnitCell(lattParams=lattParams, lattAngles=lattAngles)
 	for idx, unused in enumerate(fractCoords):
 		fractCoords[idx].append( atomsInOrder[idx] )
 
-	unitCellObj = UnitCell.fromLattVects(lattVectsFromFile, fractCoords=fractCoords)
-#	lattVectsFromCell = unitCellObj.getLattVects()
-
-
-
-#	transFractCoords = getTransformedFractCoords(lattVectsFromFile, lattVectsFromCell, fractCoords)
-#	for idx, unused in enumerate(transFractCoords):
-#		transFractCoords[idx].append( atomsInOrder[idx] )
-#	unitCellObj.fractCoords = transFractCoords
+	unitCellObj = UCell.UnitCell.fromLattVects(lattVectsFromFile, fractCoords=fractCoords)
 
 	return unitCellObj, lineIdx
 
