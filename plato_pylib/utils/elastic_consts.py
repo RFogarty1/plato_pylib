@@ -17,6 +17,7 @@ def calcElasticConstantFromStrainEnergies(strainVals, energyVals, refVol, n, m, 
 	#Step 1 = calculate 2nd deriv of strain vs energy curve
 	objFunct = _createObjFunctFor2ndDerivFit(strainVals,energyVals)
 	startVals = [0.0 for x in range(3)]
+
 	fitRes = minimize(objFunct, startVals)
 	print("Got a value of {} for the 2nd deriv".format(fitRes.x[0]))
 
@@ -29,7 +30,7 @@ def calcElasticConstantFromStrainEnergies(strainVals, energyVals, refVol, n, m, 
 		elastic = leftSide - mElastic - nElastic
 
 	#Step 3 = create object with relevant info
-	outObj = FitResultElastic( fitRes, elastic, refVol, (n,m) )
+	outObj = FitResultElastic( fitRes, elastic, refVol, (n,m), strainVals, energyVals )
 	return outObj
 
 #For now limit to x**2 polynomial fit for the minimize interface
@@ -46,12 +47,13 @@ def _createObjFunctFor2ndDerivFit(strainVals,energies):
 
 
 class FitResultElastic:
-	def __init__(self, fitObj, elasticConst, refVol, nmTuple):
+	def __init__(self, fitObj, elasticConst, refVol, nmTuple, strainVals, energyVals):
 		self.fitObj = fitObj
 		self.elasticConst = elasticConst
 		self.refVol = refVol
 		self.nm = nmTuple
-
+		self.strainVals = strainVals
+		self.energyVals = energyVals
 
 #---------->Functions related to generate the strained files<-------------------
 
