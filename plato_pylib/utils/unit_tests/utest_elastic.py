@@ -7,123 +7,20 @@ import unittest
 import plato_pylib.utils.elastic_consts as tCode
 import plato_pylib.shared.ucell_class as UCell
 
-class TestGetStrainMatrix(unittest.TestCase):
-
-	def test33(self):
-		strainCoeff = 2
-		inpVals = (3,3)
-		expMatrix = np.zeros( (3,3) )
-		expMatrix[2,2] = strainCoeff
-		actMatrix = tCode.getStrainMatrix(*inpVals, strainCoeff=strainCoeff)
-		self.assertTrue(np.allclose(expMatrix,actMatrix))
-
-	def test56(self):
-		strainCoeff = 2
-		inpVals = (5,6)
-		expMatrix = np.array( [[0.0            , 0.5*strainCoeff, 0.5*strainCoeff],
-		                       [0.5*strainCoeff, 0.0            , 0.0            ],
-		                       [0.5*strainCoeff, 0.0            , 0.0            ]] )
-		actMatrix = tCode.getStrainMatrix(*inpVals, strainCoeff=strainCoeff)
-		self.assertTrue(np.allclose(expMatrix,actMatrix))
-
-
-class TestApplyStrain(unittest.TestCase):
-	def setUp(self):
-		self.testVectsA = [ [1.0, 0.0, 0.0],
-		                    [0.0, 1.4, 0.0],
-		                    [0.0, 2.4, 4.6] ]
-
-		self.outputVectsA_strain3_36 = [ [1.0, 2.1, 0.0],
-		                                 [1.5, 1.4, 0.0],
-		                                 [0.0, 9.6, 18.4] ]
-
-		self.outputVectsA_strain3_11 = [ [4.0, 0.0, 0.0],
-		                                 [0.0, 1.4, 0.0],
-		                                 [0.0, 2.4, 4.6] ]
-
-		fakeFractCoords = [[0.5,0.5,0.5,"Mg"], [0.75,0.75,0.75,"Mg"]]
-		self.testUCellA = UCell.UnitCell.fromLattVects(self.testVectsA)
-		self.testUCellA.fractCoords = fakeFractCoords
-
-
-	def testFromListA_11(self):
-		strainCoeff = 3
-		n,m = 1,1
-		tCode.applyStrainForElasticConstant(self.testVectsA, n, m, strainCoeff)
-		self.assertTrue(np.allclose(self.outputVectsA_strain3_11, self.testVectsA))
-
-	def testFromListA_36(self):
-		strainCoeff = 3
-		n,m = 3,6
-		tCode.applyStrainForElasticConstant(self.testVectsA, n, m, strainCoeff)
-
-		self.assertTrue(np.allclose(self.outputVectsA_strain3_36, self.testVectsA))
-
-	def testFromNpArrayA_36(self):
-		strainCoeff = 3
-		n,m = 3,6
-		inpVects = np.array(self.testVectsA)
-		tCode.applyStrainForElasticConstant(inpVects, n, m, strainCoeff)
-		self.assertTrue(np.allclose(self.outputVectsA_strain3_36, inpVects))
-
-	def testInterfaceToUCellClass_11(self):
-		strainCoeff = 3
-		n,m = 1,1
-
-		#We compare parameters/angles due to the semi-arbitrary nature of the lattice vectors
-		expFractCoords = [list(x) for x in self.testUCellA.fractCoords]
-		expAngles , expParams = self.testUCellA.getLattAnglesList(), self.testUCellA.getLattParamsList()
-		expParams[0] = (strainCoeff*expParams[0]) + expParams[0] #ONLY this should change for the xx strain
-		tCode.applyStrainToUCellForElasticConstant(self.testUCellA, n, m, strainCoeff)
-		actAngles, actParams = self.testUCellA.getLattAnglesList(), self.testUCellA.getLattParamsList()
-		actFractCoords = self.testUCellA.fractCoords
-
-		[self.assertAlmostEqual(exp,act) for exp,act in it.zip_longest(expParams,actParams)]
-		[self.assertAlmostEqual(exp,act) for exp,act in it.zip_longest(expAngles,actAngles)]
-		for expFract, actFract in it.zip_longest(expFractCoords,actFractCoords):
-			[self.assertAlmostEqual(exp,act) for exp,act in it.zip_longest(expFract,actFract)]
-	
-	def testInterfaceToUCellClass_36(self):
-		''' Test correct elastic strain is applied to unit-cell class for calculating C36 constant '''
-		strainCoeff = 3
-		n,m = 3,6
-
-		expFractCoords = [list(x) for x in self.testUCellA.fractCoords]
-		expUCell = UCell.UnitCell.fromLattVects(self.outputVectsA_strain3_36)
-		expAngles, expParams = expUCell.getLattAnglesList(), expUCell.getLattParamsList()
-
-		tCode.applyStrainToUCellForElasticConstant(self.testUCellA, n, m, strainCoeff)
-		actAngles, actParams = 	self.testUCellA.getLattAnglesList(), self.testUCellA.getLattParamsList()
-		actFractCoords = self.testUCellA.fractCoords
-
-		[self.assertAlmostEqual(exp,act) for exp,act in it.zip_longest(expParams,actParams)]
-		[self.assertAlmostEqual(exp,act) for exp,act in it.zip_longest(expAngles,actAngles)]
-		for expFract, actFract in it.zip_longest(expFractCoords,actFractCoords):
-			[self.assertAlmostEqual(exp,act) for exp,act in it.zip_longest(expFract,actFract)]
-
-
 
 class TestCalcElastic(unittest.TestCase):
 
 	def setUp(self):
-		self.strainValsA = [-0.04,-0.03,-0.02,-0.01,0.0,0.01,0.02,0.03,0.04]
-		self.energyValsA = [1.008, 1.0045, 1.002, 1.0005, 1, 1.0005, 1.002, 1.0045, 1.008]
-		self.refVolA = 50
-		self.expC11ConstA = 0.1
+		self.crystTypeA = "hexagonal"
+		strainParams = [-0.01,0.0,0.01]
+		stressVals = [0.00013, 0.00021, 0.00024, 0.0003, 0.00033]
+		self.strainStresssA = [ [[x,y] for x,y in zip(strainParams,[s,0,s])] for s in stressVals ] 
+		self.expElasticA = {(1,1):1.6, (1,2):0.5, (1,3):0.15, (3,3):2.6, (4,4):1.5}
 
-	def testCalcElasticC11(self):
-		n,m = 1,1
-		elasticFitRes = tCode.calcElasticConstantFromStrainEnergies(self.strainValsA, self.energyValsA, self.refVolA, n, m)
-		self.assertAlmostEqual( self.expC11ConstA, elasticFitRes.elasticConst, places=5 )
-
-	def testCalcElasticC23(self):
-		n,m = 2,3
-		nElastic, mElastic = 0.2,0.3
-		expElastic = self.expC11ConstA - nElastic - mElastic
-		elasticFitRes = tCode.calcElasticConstantFromStrainEnergies(self.strainValsA, self.energyValsA, self.refVolA, n, m,
-		                                                            nElastic=nElastic, mElastic=mElastic)
-		self.assertAlmostEqual( expElastic, elasticFitRes.elasticConst, places=5 )
-
+	def testCalcElasticHexagonalA(self):
+		actElastic = tCode.calcElasticsFromStressStain(self.strainStresssA, self.crystTypeA)
+		for key in self.expElasticA.keys():
+			self.assertAlmostEqual( self.expElasticA[key], actElastic[key],places=5 )
 
 if __name__ == '__main__':
 	unittest.main()
