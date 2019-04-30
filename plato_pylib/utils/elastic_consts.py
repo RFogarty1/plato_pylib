@@ -51,7 +51,10 @@ def getStrainedLattVects(lattVects, strainParams, crystType):
 
 def applyStrainToLattVects(lattVects:"3x3 mutable iter e.g [ [v1],[v2],[v3] ]", strainMatrix):
 	''' Works in place '''
-	vectShiftMatrix = (np.identity(3) + strainMatrix) @ np.array(lattVects)
+	tranposedVects = np.array(lattVects).transpose()
+	vectShiftMatrix = ( (np.identity(3) + strainMatrix) @ tranposedVects )
+	vectShiftMatrix = vectShiftMatrix.transpose()
+
 	for idxA,iterA in enumerate(lattVects):
 		for idxB,unused in enumerate(iterA):
 			lattVects[idxA][idxB] = vectShiftMatrix[idxA][idxB]
@@ -71,7 +74,20 @@ def _hexStrainMatrices(strainParam):
 	outMatrices.append( _STRAIN_MATRIX_DICT[1](strainParam) + _STRAIN_MATRIX_DICT[2](strainParam) )
 	outMatrices.append( _STRAIN_MATRIX_DICT[1](strainParam) + _STRAIN_MATRIX_DICT[2](strainParam) + _STRAIN_MATRIX_DICT[3](strainParam) )
 	outMatrices.append( _STRAIN_MATRIX_DICT[4](2*strainParam) + _STRAIN_MATRIX_DICT[5](2*strainParam) )
-	outMatrices.append( 2* (_STRAIN_MATRIX_DICT[1](strainParam) + _STRAIN_MATRIX_DICT[2](strainParam) + _STRAIN_MATRIX_DICT[6](strainParam)) )
+	outMatrices.append( (_STRAIN_MATRIX_DICT[1](strainParam) + _STRAIN_MATRIX_DICT[2](strainParam) - _STRAIN_MATRIX_DICT[6](2*strainParam)) )
+
+#	print("strainParam = {}".format(strainParam))
+#	print("First matrix is:")
+#	print(outMatrices[0])
+#	print("Second matrix is:")
+#	print(outMatrices[1])
+#	print("Third matrix is:")
+#	print(outMatrices[2])
+#	print("Fourth matrix is:")
+#	print(outMatrices[3])
+#	print("Fifth matrix is:")
+#	print(outMatrices[4])
+
 
 	return outMatrices
 
@@ -88,6 +104,7 @@ def calcElasticsFromStressStain(strainStress:"nx2 iter, e.g. [(1,1)], with eleme
 
 
 	secondDerivs = [x.secondDeriv for x in polyFits]
+	print("secondDerivs = {}".format(secondDerivs))
 	elasticKeys = getElasticKeysInOrder(crystType)
 	coeffMatrix = getElasticConstCoeffMatrix(crystType)
 
@@ -95,11 +112,14 @@ def calcElasticsFromStressStain(strainStress:"nx2 iter, e.g. [(1,1)], with eleme
 
 	outDict = {k:v for k,v in it.zip_longest(elasticKeys, elasticConsts)}
 
-	return outDict
+	return ElasticOutputData(outDict,polyFits)
 
 
 
-
+class ElasticOutputData:
+	def __init__(self, elasticDict, polyFits):
+		self.fits = polyFits
+		self.elasticConstants = elasticDict
 
 def _polyFitAndGetSecondDeriv(strainStress):
 	inpVals = np.array(strainStress)
@@ -165,9 +185,9 @@ def getElasticConstCoeffMatrix(crystType):
 def _hexElasticEquationMatrix():
 	return np.array( [ [0, 0, 0, 1, 0],
 	                   [2, 2, 0, 0, 0],
-	                   [2, 2, 4, 0, 0],
-	                   [0, 0, 0, 0, 4],
-	                   [6,-6, 0, 0, 0] ] )
+	                   [2, 2, 4, 1, 0],
+	                   [0, 0, 0, 0, 8],
+	                   [4,-4, 0, 0, 0] ] )
 
 
 
