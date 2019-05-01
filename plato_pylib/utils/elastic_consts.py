@@ -13,9 +13,6 @@ _STRAIN_MATRIX_DICT = dict()
 
 
 
-#-------->ATTEMPT TWO STARTS HERE <-------------------------------
-
-
 #-------->Code to generate the strains<----------------
 def getStrainedStructsForElasticConsts(uCell:"UnitCell obj", strainParams:"list", crystType=None):
 	if crystType is None:
@@ -74,19 +71,19 @@ def _hexStrainMatrices(strainParam):
 	outMatrices.append( _STRAIN_MATRIX_DICT[1](strainParam) + _STRAIN_MATRIX_DICT[2](strainParam) )
 	outMatrices.append( _STRAIN_MATRIX_DICT[1](strainParam) + _STRAIN_MATRIX_DICT[2](strainParam) + _STRAIN_MATRIX_DICT[3](strainParam) )
 	outMatrices.append( _STRAIN_MATRIX_DICT[4](2*strainParam) + _STRAIN_MATRIX_DICT[5](2*strainParam) )
-	outMatrices.append( (_STRAIN_MATRIX_DICT[1](strainParam) + _STRAIN_MATRIX_DICT[2](strainParam) - _STRAIN_MATRIX_DICT[6](2*strainParam)) )
+	outMatrices.append( _STRAIN_MATRIX_DICT[6](2*strainParam) )
 
-#	print("strainParam = {}".format(strainParam))
-#	print("First matrix is:")
-#	print(outMatrices[0])
-#	print("Second matrix is:")
-#	print(outMatrices[1])
-#	print("Third matrix is:")
-#	print(outMatrices[2])
-#	print("Fourth matrix is:")
-#	print(outMatrices[3])
-#	print("Fifth matrix is:")
-#	print(outMatrices[4])
+	print("strainParam = {}".format(strainParam))
+	print("First matrix is:")
+	print(outMatrices[0])
+	print("Second matrix is:")
+	print(outMatrices[1])
+	print("Third matrix is:")
+	print(outMatrices[2])
+	print("Fourth matrix is:")
+	print(outMatrices[3])
+	print("Fifth matrix is:")
+	print(outMatrices[4])
 
 
 	return outMatrices
@@ -98,13 +95,10 @@ def _hexStrainMatrices(strainParam):
 def calcElasticsFromStressStain(strainStress:"nx2 iter, e.g. [(1,1)], with elements (strain,stress)", crystType:str):
 	polyFits = list()
 
-
 	for x in strainStress:
 		polyFits.append( _polyFitAndGetSecondDeriv(x)  )
 
-
 	secondDerivs = [x.secondDeriv for x in polyFits]
-	print("secondDerivs = {}".format(secondDerivs))
 	elasticKeys = getElasticKeysInOrder(crystType)
 	coeffMatrix = getElasticConstCoeffMatrix(crystType)
 
@@ -167,8 +161,6 @@ def getElasticKeysInOrder(crystType):
 	except KeyError:
 		raise ValueError("{} is an invalid crystal type, allowedVals are {}".format(structType,typeToFunct.keys()))
 
-def _hexElasticKeys():
-	return [(1,1), (1,2), (1,3), (3,3), (4,4)]
 
 
 
@@ -182,80 +174,21 @@ def getElasticConstCoeffMatrix(crystType):
 
 
 
+
+def _hexElasticKeys():
+	return [(1,1), (1,2), (1,3), (3,3), (4,4)]
+
 def _hexElasticEquationMatrix():
 	return np.array( [ [0, 0, 0, 1, 0],
 	                   [2, 2, 0, 0, 0],
 	                   [2, 2, 4, 1, 0],
 	                   [0, 0, 0, 0, 8],
-	                   [4,-4, 0, 0, 0] ] )
+	                   [2,-2, 0, 0, 0] ] )
 
 
 
 
-#---------->Functions to calculate the elastic constant from output calcs<----------
-
-def calcElasticConstantFromStrainEnergies(strainVals, energyVals, refVol, n, m, nElastic=None, mElastic=None):
-	#Step 1 = calculate 2nd deriv of strain vs energy curve
-	objFunct = _createObjFunctFor2ndDerivFit(strainVals,energyVals)
-	startVals = [0.0 for x in range(3)]
-
-	fitRes = minimize(objFunct, startVals)
-
-	#Step 2 = calculate elastic constant based on that info
-	secondDeriv = 2*fitRes.x[0]
-	leftSide = secondDeriv * (1/refVol)
-	if n==m:
-		elastic = leftSide
-	else:
-		elastic = leftSide - mElastic - nElastic
-
-	#Step 3 = create object with relevant info
-	outObj = FitResultElastic( fitRes, elastic, refVol, (n,m), strainVals, energyVals )
-	return outObj
-
-
-
-
-class FitResultElastic:
-	def __init__(self, fitObj, elasticConst, refVol, nmTuple, strainVals, energyVals):
-		self.fitObj = fitObj
-		self.elasticConst = elasticConst
-		self.refVol = refVol
-		self.nm = nmTuple
-		self.strainVals = strainVals
-		self.energyVals = energyVals
-
-#---------->Functions related to generate the strained files<-------------------
-
-def applyStrainToUCellForElasticConstant(unitCell, n, m, strainCoeff):
-	''' Applies a strain to UnitCell class structure needed to get elastic constant C_nm '''
-	currLattVects = unitCell.lattVects
-	origFractCoords = [list(x) for x in unitCell.fractCoords]
-	applyStrainForElasticConstant(currLattVects, n, m, strainCoeff)
-	unitCell.lattVects = currLattVects
-	unitCell.fractCoords = origFractCoords
-
-
-
-def applyStrainForElasticConstant(cartVects:"3x3 iterxiter", n, m, strainCoeff):
-	''' Applies strain needed to calculate elastic constant Cnm (works in place) '''
-	strainMatrix = getStrainMatrix(n,m,strainCoeff=strainCoeff)
-	vectShiftMatrix = (np.identity(3) + strainMatrix) @ np.array(cartVects)
-
-	for idxA,iterA in enumerate(cartVects):
-		for idxB,unused in enumerate(iterA):
-			cartVects[idxA][idxB] = vectShiftMatrix[idxA][idxB]
-
-
-def getStrainMatrix(n, m, strainCoeff=1):
-	''' Get the relevant strain matrix to calculate C_{n,m} are Voight indices, see plato section on elastic constants '''
-	if (n==m):
-		return _STRAIN_MATRIX_DICT[(n,m)](strainCoeff)
-
-	matN = _STRAIN_MATRIX_DICT[(n,n)](strainCoeff)
-	matM = _STRAIN_MATRIX_DICT[(m,m)](strainCoeff)
-	return matN + matM
-
+#------->Strain matrices<---------------
 
 def registerStrainMatrix(key:"2-tuple"):
 	def decorate(funct):
