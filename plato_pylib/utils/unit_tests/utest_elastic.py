@@ -32,15 +32,46 @@ class TestApplyStrain(unittest.TestCase):
 		self.expectedShearStrainedA = [ [5, 2.5, 0],
 		                                [-2, 0.5, 0],
 		                                [0, 0, 9] ]
+
+		self.startCartCoordsA = [ [0.0,0.0,0.0,"Mg"],
+		                          [2.0, 2.0, 4.0, "Mg"] ]
+
+		self.fractCoordsUCellB = [ [0.0,0.0,0.0,"Mg"],
+		                           [0.33,0.33,0.5,"Mg"] ]
+
+		self.uCellB = UCell.UnitCell.fromLattVects(self.lattVectsA, fractCoords = self.fractCoordsUCellB)
+
 		
-	def testXyShearStrainA_fromList(self):
+	def testXyShearStrainA_fromList_lattVects(self):
 		strainMatrix = tCode._STRAIN_MATRIX_DICT[6](2*self.strainParamA)
 		expLattVects = np.array(self.expectedShearStrainedA) 
 		actLattVects = list(self.lattVectsA)
 		tCode.applyStrainToLattVects(actLattVects, strainMatrix)
 		self.assertTrue( np.allclose ( expLattVects , np.array(actLattVects) ) ) 
 
+	def testXXStrain_ucellInterface_withAtomCoords(self):
+		#Note: I dont expect the fractional co-ords to change with xx-strain. Meaning doing nothing to atomic-coords would pass this test.
+		strainMatrix = tCode._STRAIN_MATRIX_DICT[1](1)
+		expLattVects = [ [7.5, 0, 0],
+		                 [-4.5, 2, 0],
+		                 [0, 0, 9] ]
+		expUCell = UCell.UnitCell.fromLattVects(expLattVects, fractCoords = self.fractCoordsUCellB) #The fractional co-ordinates shouldnt change for a non-shear strain
+		actUCell = tCode.getStrainedUnitCellStructsForUnitStrainVects(self.uCellB, [self.strainParamA], [strainMatrix])[0][0]
 
+		self.assertTrue(expUCell == actUCell)
+
+
+	def testXYStrain_ucellInterface_withAtomCoords(self):
+		strainMatrix = tCode._STRAIN_MATRIX_DICT[6](2) #xy strain; each ,matrix element is 0.5 by convention hence i set strain param to 2
+		expLattVects = np.array(self.expectedShearStrainedA)
+		expCartCoords = [[0.0,0.0,0.0,"Mg"],[0.99,0.99,4.5,"Mg"]]
+
+		expUCell = UCell.UnitCell.fromLattVects(expLattVects)
+		expUCell.cartCoords = expCartCoords
+
+		actUCell = tCode.getStrainedUnitCellStructsForUnitStrainVects(self.uCellB, [self.strainParamA], [strainMatrix])[0][0]
+
+		self.assertTrue(expUCell == actUCell)
 
 
 if __name__ == '__main__':

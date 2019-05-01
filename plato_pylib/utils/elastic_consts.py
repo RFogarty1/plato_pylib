@@ -14,47 +14,99 @@ _STRAIN_MATRIX_DICT = dict()
 
 
 #-------->Code to generate the strains<----------------
+
+#UnitCell class interface
 def getStrainedStructsForElasticConsts(uCell:"UnitCell obj", strainParams:"list", crystType=None):
-	if crystType is None:
-		raise ValueError("{} is an invalid crystal type (for now)".format(crystType))
 	#Pass on to lower functions by just extracting the lattice vectors, which are all thats really needed. Grab a loada shifted lattice vectors at the end
+	unitStrainMatrices = getStrainMatrices(crystType,1)
+	return getStrainedUnitCellStructsForUnitStrainVects(uCell, strainParams, unitStrainMatrices)
+
+
+
+
+
+#Basic interface
+def getStrainedLattVectsForElasticConsts(lattVects, strainParams, crystType, cartCoords=None):
+	''' Returns:1) list of strained lattice vectors for each strain matrix. output[0] contains all strains for the 0-th strain matrix (e.g. strains along c),
+	             while output[1] contains all lattice vectors for strains along
+	            2) Either None or the strained cartesian coordinates
+	'''         
+	unitStrainMatrices = getStrainMatrices(crystType,1) 
+	return getStrainedLattVectsAndCartCoordsFromUnitStrainMatrices(lattVects, strainParams, unitStrainMatrices, cartCoords=cartCoords)
+
+
+
+#Lower lvl part of the UnitCell class interface
+def getStrainedUnitCellStructsForUnitStrainVects(uCell:"UnitCell obj", strainParams:"list", unitStrainMatrices):
 	lattVects = uCell.lattVects
-	strainedLattVects = getStrainedLattVects(lattVects, strainParams, crystType)
+	cartCoords = uCell.cartCoords
+
+
+	strainedLattVects, strainedCartCoords = getStrainedLattVectsAndCartCoordsFromUnitStrainMatrices(lattVects, strainParams, unitStrainMatrices, cartCoords=cartCoords)
 	outUCells = list()
 
 	for idxA in range(len(strainedLattVects)):
 		outUCells.append( list() )
 		for idxB in range(len(strainedLattVects[idxA])):
-			outUCells[idxA].append( UCell.UnitCell.fromLattVects( strainedLattVects[idxA][idxB], uCell.fractCoords) )
+			outUCells[idxA].append( UCell.UnitCell.fromLattVects( strainedLattVects[idxA][idxB]) )
+			print(strainedCartCoords[idxA][idxB])
+			outUCells[idxA][-1].cartCoords = strainedCartCoords[idxA][idxB]
 
 	return outUCells
 
-def getStrainedLattVects(lattVects, strainParams, crystType):
-	''' Returns: list of strained lattice vectors for each strain matrix. output[0] contains all strains for the 0-th strain matrix (e.g. strains along c),
-	             while output[1] contains all lattice vectors for strains along 
-	'''         
-	unitStrainMatrices = getStrainMatrices(crystType,1) 
 
+#Common function called to apply strains to 
+def getStrainedLattVectsAndCartCoordsFromUnitStrainMatrices(lattVects, strainParams, unitStrainMatrices, cartCoords=None):
+	#TODO: Tidy this code up  (Extract method so each loop replaced with ~1 line of code)
 	strainedLattVects = list()
+	strainedCartCoords = None if cartCoords is None else list()
 	for idx,sMatrix in enumerate(unitStrainMatrices):
-		strainedLattVects.append(list())
+		strainedLattVects.append( list() )
 		for sParam in strainParams:
+			currStrainMatrix = sMatrix*sParam
 			currLattVects = copy.deepcopy(lattVects)
-			applyStrainToLattVects(currLattVects,sMatrix*sParam)
+			applyStrainToLattVects(currLattVects,currStrainMatrix)
 			strainedLattVects[idx].append(currLattVects)
 
-	return strainedLattVects
+	if cartCoords is not None:
+		for idx,sMatrix in enumerate(unitStrainMatrices):
+			strainedCartCoords.append( list() )
+			for sParam in strainParams:
+				currStrainMatrix = sMatrix*sParam
+				currCartCoords = copy.deepcopy(cartCoords)
+				applyStrainToCartCoords(currCartCoords, sMatrix*sParam)
+				strainedCartCoords[idx].append( currCartCoords )
+
+	return strainedLattVects, strainedCartCoords
 
 
 def applyStrainToLattVects(lattVects:"3x3 mutable iter e.g [ [v1],[v2],[v3] ]", strainMatrix):
 	''' Works in place '''
-	tranposedVects = np.array(lattVects).transpose()
+	_applyStrainToMatrix(lattVects, strainMatrix)
+
+def applyStrainToCartCoords(cartCoords:"nx4 mutable iter e.g [ [v1x,v1y,v1z,\"Mg\"], [v2x,v2y,v2z,\"Mg\"] ]", strainMatrix):
+	''' Works in place '''
+	elementList = [x[-1] for x in cartCoords]
+	xyz = [ [*x[:3]] for x in cartCoords ]	
+	_applyStrainToMatrix(xyz, strainMatrix)
+
+	for idx,unused in enumerate(cartCoords):
+		cartCoords[idx][:3] = xyz[idx][:3] 
+
+
+def _applyStrainToMatrix(inpMatrix:"nx3 mutable iter e.g. [ [v1],[v2],[v3] ]", strainMatrix):
+	''' Note that the inp. matrix should be the form [ [x1,y1,z1], [x2,y2,z2] ]. The function transposes 
+		the inpMatrix to [ [x1,x2,x3....] ] when dealing with applying the strain
+	'''
+	tranposedVects = np.array(inpMatrix).transpose()
 	vectShiftMatrix = ( (np.identity(3) + strainMatrix) @ tranposedVects )
 	vectShiftMatrix = vectShiftMatrix.transpose()
 
-	for idxA,iterA in enumerate(lattVects):
+	for idxA,iterA in enumerate(inpMatrix):
 		for idxB,unused in enumerate(iterA):
-			lattVects[idxA][idxB] = vectShiftMatrix[idxA][idxB]
+			inpMatrix[idxA][idxB] = vectShiftMatrix[idxA][idxB]
+
+
 
 
 def getStrainMatrices(structType,strainParam):

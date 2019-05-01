@@ -265,7 +265,6 @@ class testParseCastepParamFile(unittest.TestCase):
 	def tearDown(self):
 		os.remove(self.testFileA)
 
-	@unittest.skip("")
 	def testTokenizeCastepParamFile(self):
 		actFullDict = tCode.tokenizeCastepParamFile(self.testFileA)
 		for key in self.partialDictFileA.keys():

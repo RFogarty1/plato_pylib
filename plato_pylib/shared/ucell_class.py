@@ -161,6 +161,16 @@ class UnitCell():
 		self._elementList = eList
 		self._fractCoords = fCoords
 
+
+	@property
+	def cartCoords(self):
+		return self._getCartCoords(sort=False)
+
+	@cartCoords.setter
+	def cartCoords(self, value: "list of [x,y,z,Element]"):
+		fractCoords = getFractCoordsFromCartCoords(self.lattVects,value)
+		self.fractCoords = fractCoords
+
 	@property
 	def volume(self):
 		return self.getVolume()
@@ -202,7 +212,7 @@ class UnitCell():
 			self._fractCoords = getTransformedFractCoords(oldLattVects, newLattVects, self._fractCoords)
 
 
-	def getCartCoords(self,sort=False):
+	def _getCartCoords(self,sort=False):
 		cartCoords = getCartCoordsFromFractCoords(self.lattVects, self.fractCoords)
 		if sort is False:
 			return cartCoords

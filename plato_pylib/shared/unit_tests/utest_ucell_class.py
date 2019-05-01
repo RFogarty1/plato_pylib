@@ -128,45 +128,60 @@ class testUnitCellClass(unittest.TestCase):
 			[self.assertAlmostEqual(exp,act,3) for exp,act in it.zip_longest(currExp, currAct)]
 
 
-	def testGetCartCoords(self):
-		lattVects_312 = [ [18.18, 0.0        , 0],
-		                  [ 3.03, 5.248113941, 0],
-		                  [ 0.00, 0.0        , 19.67808706] ]
 
-		fractCoords_312 = [ [0, 0, 0, "Mg"],
-		                    [0, 0, 0.5, "Mg"],
-		                    [0.11111111, 0.33333333, 0.25, "Mg"],
-		                    [0.11111111, 0.33333333, 0.75, "Mg"],
-		                    [0.3333333333, 0, 0, "Mg"],
-		                    [0.3333333333, 0, 0.5, "Mg"],
-		                    [0.4444444433, 0.33333333, 0.25, "Mg"],
-		                    [0.4444444433, 0.33333333, 0.75, "Mg"],
-		                    [0.6666666667, 0, 0, "Mg"],
-		                    [0.6666666667, 0, 0.5, "Mg"],
-		                    [0.7777777767, 0.33333333, 0.25, "X"],
-		                    [0.7777777767, 0.33333333, 0.75, "X"] ]
+class testCartCoords(unittest.TestCase):
+
+	def setUp(self):
+		self.lattVects_312A = [ [18.18, 0.0        , 0],
+		                        [ 3.03, 5.248113941, 0],
+		                        [ 0.00, 0.0        , 19.67808706] ]
+
+		self.fractCoords_312A = [ [0, 0, 0, "Mg"],
+		                          [0, 0, 0.5, "Mg"],
+		                          [0.11111111, 0.33333333, 0.25, "Mg"],
+		                          [0.11111111, 0.33333333, 0.75, "Mg"],
+		                          [0.3333333333, 0, 0, "Mg"],
+		                          [0.3333333333, 0, 0.5, "Mg"],
+		                          [0.4444444433, 0.33333333, 0.25, "Mg"],
+		                          [0.4444444433, 0.33333333, 0.75, "Mg"],
+		                          [0.6666666667, 0, 0, "Mg"],
+		                          [0.6666666667, 0, 0.5, "Mg"],
+		                          [0.7777777767, 0.33333333, 0.25, "X"],
+		                          [0.7777777767, 0.33333333, 0.75, "X"] ]
+
+		self.expCartCoords_312A = [ [0, 0, 0, "Mg"],
+		                            [0, 0, 9.839059786, "Mg"],
+		                            [3.0300049797, 1.7493741865, 4.919529893, "Mg"],
+		                            [3.0300049797, 1.7493741865, 14.7585896771, "Mg"],
+		                            [6.0600100124, 0, 0, "Mg"],
+		                            [6.0600100124, 0, 9.839059786, "Mg"],
+		                            [9.0900149921, 1.7493741865, 4.919529893, "Mg"],
+		                            [9.0900149921, 1.7493741865, 14.7585896771, "Mg"],
+		                            [12.1200200248, 0, 0, "Mg"],
+		                            [12.1200200248, 0, 9.839059786, "Mg"],
+		                            [15.1500250045, 1.7493741865, 4.919529893, "X"],
+		                            [15.1500250045, 1.7493741865, 14.7585896771, "X"] ]
 
 
-		expCartCoords = [ [0, 0, 0, "Mg"],
-		                  [0, 0, 9.839059786, "Mg"],
-		                  [3.0300049797, 1.7493741865, 4.919529893, "Mg"],
-		                  [3.0300049797, 1.7493741865, 14.7585896771, "Mg"],
-		                  [6.0600100124, 0, 0, "Mg"],
-		                  [6.0600100124, 0, 9.839059786, "Mg"],
-		                  [9.0900149921, 1.7493741865, 4.919529893, "Mg"],
-		                  [9.0900149921, 1.7493741865, 14.7585896771, "Mg"],
-		                  [12.1200200248, 0, 0, "Mg"],
-		                  [12.1200200248, 0, 9.839059786, "Mg"],
-		                  [15.1500250045, 1.7493741865, 4.919529893, "X"],
-		                  [15.1500250045, 1.7493741865, 14.7585896771, "X"] ]
+	def testGetCartCoordsNoSortNeeded(self):
+		testUCell = tCode.UnitCell.fromLattVects( self.lattVects_312A, self.fractCoords_312A )
+		actCartCoords = testUCell._getCartCoords(sort=True)
+		actCartCoords = testUCell.cartCoords
 
-
-		testUCell = tCode.UnitCell.fromLattVects( lattVects_312, fractCoords_312 )
-		actCartCoords = testUCell.getCartCoords(sort=True)
-
-		for expCart,actCart in it.zip_longest(expCartCoords,actCartCoords):
+		for expCart,actCart in it.zip_longest(self.expCartCoords_312A,actCartCoords):
 			[self.assertAlmostEqual(exp,act,places=4) for exp,act in it.zip_longest(expCart[:3],actCart[:3])]
 			self.assertEqual(expCart[3],actCart[3])
+
+
+	def testSetCartCoords(self):
+		testUCell = tCode.UnitCell.fromLattVects( self.lattVects_312A )
+		testUCell.cartCoords = self.expCartCoords_312A
+		actCartCoords = testUCell.cartCoords
+
+		for expCart,actCart in it.zip_longest(self.expCartCoords_312A,actCartCoords):
+			[self.assertAlmostEqual(exp,act,places=4) for exp,act in it.zip_longest(expCart[:3],actCart[:3])]
+			self.assertEqual(expCart[3],actCart[3])
+
 
 
 
