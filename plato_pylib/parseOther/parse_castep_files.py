@@ -5,6 +5,7 @@ import itertools as it
 
 import plato_pylib.shared.ucell_class as UCell
 
+from ..shared.energies_class import EnergyVals
 
 #------------->Functions for parsing the *.geom files<------------------
 
@@ -249,6 +250,7 @@ def parseCastepOutfile(inpFile: str) -> dict:
 			numbAtoms = int(line.strip().split()[-1])
 		elif line.find('Final energy') != -1:
 			energy = float(line.strip().split()[-2])
+			energies = EnergyVals(castepTotalElectronic=energy)
 		elif line.find("Unit Cell") != -1:
 			unitCellObj, unusedIdx = parseCastepUnitCellSection(fileList, lineIdx)
 		elif line.find("MP grid size for SCF calculation") != -1:
@@ -261,6 +263,7 @@ def parseCastepOutfile(inpFile: str) -> dict:
 	# Create the dictionary and return it
 	outDict = { 'numbAtoms' : numbAtoms,
 		        'energy' : energy,
+	            'energies' : energies,
 	            'unitCell': unitCellObj,
 	            'scf_numb_k': scf_numb_k,
  	            'scf_kgrid': scf_k_grid,
