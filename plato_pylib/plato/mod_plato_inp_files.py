@@ -1,5 +1,8 @@
 #!/usr/bin/python3
+
+import itertools as it
 import os
+import math
 
 def replaceStrInFile(inpFilePath: str, inpStr: str, replaceStr: str):
 	with open(inpFilePath, "rt") as f:
@@ -82,6 +85,43 @@ def writePlatoOutFileFromDict(filePath, optValDict:"dict, all keys/vals should b
 		for key in optValDict.keys():
 			f.write(key + "\n" + optValDict[key] + "\n\n")
 
+
+
+def getPlatoGeomDictFromUnitCell(uCell:"UnitCell object"):
+
+	#Get all info from unit-cell
+	nAtoms = len(uCell.fractCoords)
+	lattVects = uCell.lattVects
+	fractCoords = uCell.fractCoords
+
+	print("fractCoords = {}".format(fractCoords))
+	#Convert info into nice format for plato
+	cellSizes = [_getMagVector(x) for x in lattVects]
+	unitVects = list()
+	uVectsStr = ""
+	fractCoordStr = ""
+
+	for mag,vect in it.zip_longest(cellSizes,lattVects):
+		currVect = [x/mag for x in vect]
+		unitVects.append(currVect)
+		uVectsStr += " ".join(["{:.8f}".format(x) for x in currVect]) + '\n'
+
+	for currCoords in fractCoords:
+		currStr = "{:.8f} {:.8f} {:.8f} {}".format(*currCoords)
+		fractCoordStr += currStr + '\n'
+
+	#Create dict with all relevant kwargs/strings
+	outDict = dict()
+	outDict["natom"] = str(nAtoms)
+	outDict["cellsize"] = " ".join(["{:.8f}".format(x) for x in cellSizes])
+	outDict["cellvec"] = uVectsStr
+	outDict["atoms"] = fractCoordStr
+	outDict["format"] = "0"
+
+	return outDict
+
+def _getMagVector(inpVect:iter):
+	return math.sqrt( sum( [x**2 for x in inpVect] ) )
 
 
 #Functions dealing with paths to Plato data files

@@ -6,7 +6,7 @@ import unittest
 
 sys.path.append('../..')
 import plato_pylib.plato.mod_plato_inp_files as tCode
-
+import plato_pylib.shared.ucell_class as UCell
 
 
 class testModPlatoInpOption(unittest.TestCase):
@@ -75,6 +75,30 @@ class testTokenizePlatoInpFile(unittest.TestCase):
 		                 "ReactionCoordinate".lower():"0"}
 		actualVals = tCode.tokenizePlatoInpFile(testInpFile)
 		self.assertEqual(expectedVals, actualVals)
+
+
+class testGetGeomStrFromUnitCell(unittest.TestCase):
+
+	def setUp(self):
+		fractCoordsA = [ [0.0000000, 0.0000000, .00000000,  "Si"], [0.25, 0.25, 0.25, "Si"] ]
+		lattVectsA = [ [2.0, 0.0, 0.0], [0.0,2.0,0.0], [0.0,0.0,2.0] ]
+		self.testUCellA = UCell.UnitCell.fromLattVects(lattVectsA,fractCoords=fractCoordsA)
+
+		cellVecForm = "{:.8f} {:.8f} {:.8f}\n"
+		fractForm = "{:.8f} {:.8f} {:.8f} {}\n"
+		cellSizeForm = "{:.8f} {:.8f} {:.8f}"
+		self.expDictA = {"cellvec": cellVecForm.format(1.0,0.0,0.0) +
+		                            cellVecForm.format(0.0,1.0,0.0) +
+		                            cellVecForm.format(0.0,0.0,1.0),
+		                 "cellsize":cellSizeForm.format(2.0,2.0,2.0),
+		                 "natom":"2",
+		                 "format":"0",
+		                 "atoms": fractForm.format(0.0, 0.0, 0.0, "Si") + 
+		                          fractForm.format(0.25,0.25,0.25,"Si") }
+
+	def testForGeomA(self):
+		actDict = tCode.getPlatoGeomDictFromUnitCell(self.testUCellA)
+		self.assertEqual(self.expDictA, actDict)
 
 
 def createPartialPlatoInpFileA():
