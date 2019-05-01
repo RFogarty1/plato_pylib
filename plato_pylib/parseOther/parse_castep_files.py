@@ -6,6 +6,8 @@ import itertools as it
 import plato_pylib.shared.ucell_class as UCell
 
 
+#------------->Functions for parsing the *.geom files<------------------
+
 def parseCastepGeomFile(castepGeomFile:str)->"list of dicts":
 	with open(castepGeomFile,"rt") as f:
 		fileAsList = f.readlines()
@@ -62,6 +64,8 @@ def _parseSingleIterGeomFile(fileAsList,filePos)->"int, newFilePos":
 
 	return filePos, outDict
 
+
+#------------->Functions for parsing the *.cell files<------------------
 
 
 def unitCellObjFromCastepCellFile(cellFilePath:str):
@@ -191,6 +195,38 @@ def _getCastepFractPosStrFromUCellClass(unitCell):
 	outStr = outStr.strip()
 	return outStr
 		
+#------------->Functions for parsing the *.param files<------------------
+
+def tokenizeCastepParamFile(inpParamPath:str):
+	with open(inpParamPath,"rt") as f:
+		fileAsList = f.readlines()
+
+	outDict = dict()
+	for line in fileAsList:
+		if ":" in line:
+			key = line.strip().split(":")[0]
+			val = line.strip().split(":")[1]
+			outDict[key.strip().lower()] = val.strip().lower()
+
+	return outDict
+
+def modCastepParamFile(filePath:str, modKeyVals:dict):
+	tokenisedFile = tokenizeCastepParamFile(filePath)
+	for key in modKeyVals.keys():
+		tokenisedFile[key.lower()] = str( modKeyVals[key] ).lower()
+	_writeCastepParamFileFromDict(filePath,tokenisedFile)
+
+
+
+def _writeCastepParamFileFromDict(filePath, inpDict):
+	outFormat = "{} : {}\n"
+	with open(filePath,"wt") as f:
+		for key in inpDict:
+			f.write( outFormat.format(key, inpDict[key]) )
+
+#------------->Functions for parsing the *.castep files<------------------
+
+
 
 ###########################################################################
 # Function takes a *.castep file from castep and extracts k points, 

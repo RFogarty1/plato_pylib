@@ -254,6 +254,34 @@ class testParseCastepGeomFile(unittest.TestCase):
 
 		self.assertEqual(expUCell,actUCell)
 
+
+class testParseCastepParamFile(unittest.TestCase):
+
+	def setUp(self):
+		self.testFileA = createCastepParamFileA()
+		self.partialDictFileA = {"task":"geometryoptimisation",
+		                          "xc_functional": "PBE".lower(),
+		                          "cut_off_energy":"600"}
+	def tearDown(self):
+		os.remove(self.testFileA)
+
+	@unittest.skip("")
+	def testTokenizeCastepParamFile(self):
+		actFullDict = tCode.tokenizeCastepParamFile(self.testFileA)
+		for key in self.partialDictFileA.keys():
+			self.assertEqual( self.partialDictFileA[key], actFullDict[key])
+
+	def testModValInParamFile_cutoffEnergy(self):
+		testCutoff = 500
+		self.partialDictFileA["cut_off_energy"] = testCutoff
+		tCode.modCastepParamFile(self.testFileA,self.partialDictFileA) #Testing this function
+		self.partialDictFileA["cut_off_energy"] = str(testCutoff) #Wanted it as int to more fully test funct, but expected result is for it to be a str
+		tokenizedFile = tCode.tokenizeCastepParamFile(self.testFileA) #Using this function only to help test the other
+		for key in self.partialDictFileA.keys():
+			self.assertEqual( self.partialDictFileA[key], tokenizedFile[key] )
+
+
+
 def createCastepCellFileA():
 	filePath = os.path.join(os.getcwd(), "cellFileA.cell")
 	fileStr = "# Change lattice parameters here\n%BLOCK LATTICE_CART\nbohr\n 6.0649000000	0.0000000000	0.0000000000\n-3.0325000000	5.2524000000	0.0000000000\n 0.0000000000	0.0000000000	9.8470000000\n%ENDBLOCK LATTICE_CART\n\n%BLOCK CELL_CONSTRAINTS\n  1   2   3\n  0   0   0\n%ENDBLOCK CELL_CONSTRAINTS\n\n# Change elements here\n%BLOCK POSITIONS_FRAC\nMg 0.0    0.0    0.0\nMg 0.33333333    0.66666667    0.5\n%ENDBLOCK POSITIONS_FRAC\n\n# You will need to get a potential file for magnesium and have it in the same folder (and refernce to it here)\n# I am pretty sure you can get them from here: http://cmt.dur.ac.uk/Pseudopotentials/\n%BLOCK SPECIES_POT\nMg Mg_OTF_PBE_mine.usp\n%ENDBLOCK SPECIES_POT\n\nsymmetry_generate\n\nkpoint_mp_grid 10 10 6\n\n#Your path though k-space from Plato (without the weight)\n%BLOCK BS_KPOINT_LIST\n0.000 0.000 0.000 1.000\n%ENDBLOCK BS_KPOINT_LIST\n"
@@ -261,6 +289,13 @@ def createCastepCellFileA():
 		f.write(fileStr)
 	return filePath
 
+
+def createCastepParamFileA():
+	filePath = os.path.abspath( os.path.join(os.getcwd(), "paramFileA.param" ) )
+	fileStr = "task :				geometryoptimisation\nxc_functional :			PBE\nspin_polarized :		false\nspin :				0\ncut_off_energy :		600\ngrid_scale :			2.000000000000000\nfine_grid_scale :		2.300000000000000\nfinite_basis_corr :		2\nelec_energy_tol :		1.000000000000000e-006\nmax_scf_cycles :		150\nfix_occupancy :			false\nmetals_method :			dm\nmixing_scheme :			Pulay\nsmearing_scheme: 		FermiDirac\nsmearing_width :        	0.0136 eV\nmix_charge_amp :		0.500000000000000\nmix_spin_amp :			2.000000000000000\nmix_charge_gmax :		1.500000000000000\nmix_spin_gmax :			1.500000000000000\nmix_history_length :		20\nperc_extra_bands :		40\nspin_fix :			6\ngeom_energy_tol :		1.000000000000000e-005\ngeom_force_tol :		0.010000000000000\ngeom_stress_tol :		0.050000000000000\ngeom_disp_tol :			5.000000000000000e-004\ngeom_max_iter :			200\ngeom_method :			BFGS\nfixed_npw :			false\ngeom_modulus_est :      	100.000000000000000  GPa\ncalculate_ELF :			false\ncalculate_stress :		true\npopn_calculate :		true\ncalculate_hirshfeld :		true\ncalculate_densdiff :		false\npdos_calculate_weights : 	false\nnum_dump_cycles :		0\nnum_backup_iter :		2\nopt_strategy :			speed\npage_wvfns :			0\nrun_time :			259100\ncharge :			0\n\n"
+	with open(filePath, "wt") as f:
+		f.write(fileStr)
+	return filePath
 
 def createCastepGeomFileA():
 	filePath = os.path.join(os.getcwd(),"geomFileA.geom")
