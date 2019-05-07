@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import itertools as it
+import json
 import math
 
 import numpy as np
@@ -139,6 +140,19 @@ class UnitCell():
 			outObj.fractCoords = transFractCoords
 		return outObj
 
+	@classmethod
+	def fromFile(cls, inpPath):
+		with open(inpPath) as f:
+			inpDict = json.load(f)
+		outObj = cls.fromLattVects( inpDict["lattvects"], fractCoords = inpDict["fractCoords".lower()] )
+		return outObj
+
+	def writeFile(self,outPath):
+		outDict = dict()
+		outDict["lattvects"] = self.lattVects
+		outDict["fractCoords".lower()] = self.fractCoords
+		with open(outPath,"wt") as f:
+			f.write(json.dumps(outDict))
 
 	@property
 	def fractCoords(self):
@@ -302,6 +316,9 @@ class UnitCell():
 		outStr = units + '\n' + lattStrings
 
 		return outStr
+
+
+
 
 def lattVectorsFromCellFile(cellFilePath):
 	fileAsDict = tokenizeCastepCellFile(cellFilePath)

@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 import itertools as it
+import os
 import unittest
 
 import plato_pylib.shared.ucell_class as tCode
@@ -183,7 +184,34 @@ class testCartCoords(unittest.TestCase):
 			self.assertEqual(expCart[3],actCart[3])
 
 
+class testReadWriteFiles(unittest.TestCase):
 
+	def setUp(self):
+		self.fractCoordsA = [ [0.0,0.0,0.0], [0.3,0.5,0.2], [0.4,0.7,0.8] ]
+		self.lattVectsA = [ [3.0,0.0,0.0],[0.0,4.0,0.0],[0.0,0.0,2.0] ]
+		self.unitCellA = tCode.UnitCell.fromLattVects( self.lattVectsA, fractCoords = self.fractCoordsA )
+		self.testPathA = "ucellTestA.ucell"
+		self.unitCellA.writeFile(self.testPathA)
+
+		self.unitCellA_noFract = tCode.UnitCell.fromLattVects(self.lattVectsA)
+		self.testPathA_noFract = "ucellTestA_noFract.ucell"
+		self.unitCellA_noFract.writeFile(self.testPathA_noFract)
+
+	def tearDown(self):
+		os.remove(self.testPathA)
+		os.remove(self.testPathA_noFract)
+
+	def testReadWriteConsistent_fractCoords_setA(self):
+		''' Test that the .readFile method creates an equal object to that which was used to make the file with .writeFile '''
+		expObj = self.unitCellA
+		actObj = tCode.UnitCell.fromFile(self.testPathA)
+		self.assertEqual(expObj,actObj)
+
+	def testReadWriteConsistent_noFractCoords_setA(self):
+		expObj = self.unitCellA_noFract
+		actObj = tCode.UnitCell.fromFile(self.testPathA_noFract)
+		self.assertEqual(expObj,actObj)
+		
 
 if __name__ == '__main__':
 	unittest.main()
