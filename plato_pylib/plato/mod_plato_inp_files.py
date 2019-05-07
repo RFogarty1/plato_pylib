@@ -94,7 +94,6 @@ def getPlatoGeomDictFromUnitCell(uCell:"UnitCell object"):
 	lattVects = uCell.lattVects
 	fractCoords = uCell.fractCoords
 
-	print("fractCoords = {}".format(fractCoords))
 	#Convert info into nice format for plato
 	cellSizes = [_getMagVector(x) for x in lattVects]
 	unitVects = list()

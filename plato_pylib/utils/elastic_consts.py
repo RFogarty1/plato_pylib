@@ -49,7 +49,6 @@ def getStrainedUnitCellStructsForUnitStrainVects(uCell:"UnitCell obj", strainPar
 		outUCells.append( list() )
 		for idxB in range(len(strainedLattVects[idxA])):
 			outUCells[idxA].append( UCell.UnitCell.fromLattVects( strainedLattVects[idxA][idxB]) )
-			print(strainedCartCoords[idxA][idxB])
 			outUCells[idxA][-1].cartCoords = strainedCartCoords[idxA][idxB]
 
 	return outUCells
