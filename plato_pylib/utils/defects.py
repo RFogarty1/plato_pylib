@@ -2,6 +2,11 @@
 import itertools as it
 import math
 
+
+def calcVacancyE(energyNoVac, energyVac, nAtomsOrig, nVacancies=1):
+	return energyVac - ( ((nAtomsOrig-nVacancies)/nAtomsOrig) * energyNoVac )
+
+
 def makeVacancyUnitCell(inpUCell:"UnitCell class object", method="central"):
 	''' Makes vacancy on UnitCell object in place. method currently limited to central,
 	    meaning the atom nearest the center of the unit cell is removed '''
@@ -10,7 +15,6 @@ def makeVacancyUnitCell(inpUCell:"UnitCell class object", method="central"):
 
 	outFractCoords = _getStructWithVacancyFractCoords(inpUCell.fractCoords, method)
 	inpUCell.fractCoords = outFractCoords
-
 
 
 def _getStructWithVacancyFractCoords(coordList, method):

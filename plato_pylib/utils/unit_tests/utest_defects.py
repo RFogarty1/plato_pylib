@@ -27,6 +27,18 @@ class testCreateVacancy(unittest.TestCase):
 			self.assertEqual(exp[-1],act[-1])
 
 
+
+
+class testCalcVacancyEnergy(unittest.TestCase):
+
+	def testSimpleCase(self):
+		energyNoVac = -60851.63131393
+		energyVac = -59160.48993609
+		nAtomsOrig = 36
+		expVal = 0.8182857864
+		actVal = tCode.calcVacancyE(energyNoVac, energyVac, nAtomsOrig)
+		self.assertAlmostEqual(expVal,actVal)
+
 if __name__ == '__main__':
 	unittest.main()
 
