@@ -12,9 +12,6 @@ ANG_TO_BOHR = 1.8897259886
 
 
 
-
-
-
 def _getTransformedFractCoordsWithElements(origLattVects:"list of lists [[v1],[v2],[v3]]", finalLattVects, origFractCoords:"list of lists"):
 	tempFractCoords = list()
 	for x in origFractCoords:
@@ -31,15 +28,25 @@ def _getTransformedFractCoordsWithElements(origLattVects:"list of lists [[v1],[v
 	return finalFractCoords
 
 def getTransformedFractCoords(origLattVects:"list of lists [[v1],[v2],[v3]]", finalLattVects, origFractCoords:"list of lists"):
-	lattVectsOrig = np.array(origLattVects).transpose() #1 column = 1 vector
-	lattVectsFinal = np.array(finalLattVects).transpose()
+	#I use transposes since i want to apply TC=C', where T is the transform matrix, C are orig. coords and C' are final coords
+	lattVectsOrigT = np.array(origLattVects).transpose()
+	lattVectsFinalT = np.array(finalLattVects).transpose()
 
+	#Step 1 = get the matrix that transforms the lattice vectors
+	transformMatrix = lattVectsFinalT @ np.linalg.inv(lattVectsOrigT)
+
+	#Step 2 = Apply that transformation to the original cartesian co-ordinates
+	origCartCoords = [ x for x in _getCartCoordsFromFract_NoElement(origLattVects, origFractCoords) ]
+	origCartArrayT = np.array(origCartCoords).transpose()
+	finalCartArray = (transformMatrix @ origCartArrayT).transpose()
+
+	#Step 3 = Convert the transformed cartesian co-ordinates into fractional ones
 	finalFractCoords = list()
-	for fracCoords in origFractCoords:
-		currCoords = np.array(fracCoords)
-		finalFractCoords.append( (currCoords@lattVectsOrig@np.linalg.inv(lattVectsFinal)).tolist() )
+	for currAtomCart in finalCartArray:
+		finalFractCoords.append( _getFractCoordsFromCartOneAtom(finalLattVects, currAtomCart) )
 
 	return finalFractCoords
+
 
 
 
@@ -47,8 +54,8 @@ def getTransformedFractCoords(origLattVects:"list of lists [[v1],[v2],[v3]]", fi
 class UnitCell():
 	def __init__(self,**kwargs):
 		kwargs = {k.lower():v for k,v in kwargs.items()}
-		self.lattParams = self.listToLattParams( kwargs.get( "lattParams".lower(), None ) )
-		self.lattAngles = self.listToLattAngles( kwargs.get( "lattAngles".lower(), None ) )
+		self._lattParams = self.listToLattParams( kwargs.get( "lattParams".lower(), None ) )
+		self._lattAngles = self.listToLattAngles( kwargs.get( "lattAngles".lower(), None ) )
 		self._fractCoords = kwargs.get("fractCoords".lower(), None)
 		self._elementList = kwargs.get("elementList".lower(), None)
 		self._eqTolPlaces = 5
@@ -61,23 +68,6 @@ class UnitCell():
 
 		allowedDiff = 10**(-1*self._eqTolPlaces)
 
-		#Note I did plan to use cart instead of fractional since i can currently get sorted output easily
-		#But it messes up a bit when values are the same due to (i guess) float errors
-#		if (self.fractCoords is None) and (other.fractCoords is None):
-#			pass
-#		elif (self.fractCoords is None) or (other.fractCoords is None):
-#			outVal = False
-#		else:
-#			cartA, cartB = self.getCartCoords(sort=True), other.getCartCoords(sort=True)
-#			for atomA,atomB in it.zip_longest(cartA,cartB):
-#				if atomA[-1] != atomB[-1]:
-#					outVal = False
-#				else:
-#					if not all( [a-b < allowedDiff for a,b in it.zip_longest(atomA[:3],atomB[:3])] ):
-#						outVal = False
-#						break
-#						
-				
 
 		#Purely numberical arrays 
 		relAttrs = ["_fractCoords"]
@@ -209,21 +199,47 @@ class UnitCell():
 		self.setLattParams(lattParams)
 		self.setLattAngles(lattAngles)
 
+
+	@property
+	def lattParams(self):
+		return self._lattParams
+
+	@lattParams.setter
+	def lattParams(self,value):
+		if not isinstance(value,dict):
+			raise ValueError("Can only set lattParams using a dict")
+		oldLattVects = self.lattVects
+		self._lattParams = dict(value)
+		newLattVects = self.lattVects
+
+		if self.fractCoords is not None:
+			self._fractCoords = getTransformedFractCoords(oldLattVects, newLattVects, self._fractCoords)
+
+	@property
+	def lattAngles(self):
+		return self._lattAngles
+
+
+	@lattAngles.setter
+	def lattAngles(self,value):
+		if not isinstance(value,dict):
+			raise ValueError("Can only set lattAngles using a dict")
+		oldLattVects = self.lattVects
+		self._lattAngles = dict(value)
+		newLattVects = self.lattVects
+
+		if self.fractCoords is not None:
+			self._fractCoords = getTransformedFractCoords(oldLattVects, newLattVects, self._fractCoords)
+
+
 	#Non-property Setter Functions
 	def setLattParams(self, lattList:list):
-		oldLattVects = self.getLattVects()
+		''' Set lattParams from a list [a,b,c]. Maintained for backwards compatability '''
 		self.lattParams = self.listToLattParams(lattList)
-		newLattVects = self.getLattVects()
 
-		if self.fractCoords is not None:
-			self._fractCoords = getTransformedFractCoords(oldLattVects, newLattVects, self._fractCoords)
 
 	def setLattAngles(self, lattAngles:list):
-		oldLattVects = self.getLattVects()
 		self.lattAngles = self.listToLattAngles(lattAngles)
-		newLattVects = self.getLattVects()
-		if self.fractCoords is not None:
-			self._fractCoords = getTransformedFractCoords(oldLattVects, newLattVects, self._fractCoords)
 
 
 	def _getCartCoords(self,sort=False):
@@ -386,15 +402,21 @@ def lattParamsAndAnglesToLattVects(lattParams:"[a,b,c]", lattAngles:"[alpha,beta
 	return lattVects
 
 def getCartCoordsFromFractCoords(lattVects, fractCoords):
+	coordsOnly = [x[:3] for x in fractCoords]
+	cartCoords = _getCartCoordsFromFract_NoElement(lattVects, coordsOnly)
+	for cart,fract in it.zip_longest(cartCoords,fractCoords):
+		cart.append( fract[-1] )
+	return cartCoords
+
+def _getCartCoordsFromFract_NoElement(lattVects,fractCoords):
 	outList = list()
 	for currAtom in fractCoords:
 		fromA  = [currAtom[0]*x for x in lattVects[0]]
 		fromB  = [currAtom[1]*x for x in lattVects[1]]
 		fromC  = [currAtom[2]*x for x in lattVects[2]]
-		outVect = [a+b+c for a,b,c in zip(fromA,fromB,fromC)] + [currAtom[3]] #Last part should be the element
+		outVect = [a+b+c for a,b,c in zip(fromA,fromB,fromC)]
 		outList.append(outVect)
 	return outList
-
 
 def getFractCoordsFromCartCoords(lattVects, cartCoords):
 	outList = list()

@@ -1,4 +1,6 @@
 #!/usr/bin/python3
+
+import copy
 import itertools as it
 import os
 import unittest
@@ -22,6 +24,8 @@ class testUnitCellClass(unittest.TestCase):
 		                        [1.6,0.5,0.0],
 		                        [3.5,1.7,12.2] ]
 
+		self.fractCoordsA = [[0.0,0.0,0.0,"Mg"],[0.333,0.666,0.5,"Mg"]]
+		self.testObjAPlusFractCoords = tCode.UnitCell.fromLattVects( self.testObjA.lattVects, fractCoords=self.fractCoordsA )
 
 	def testCorrectLatticeParams_constructor(self):
 		''' Test tCode.UnitCell class correctly converts lattice param list into a dict '''
@@ -31,7 +35,7 @@ class testUnitCellClass(unittest.TestCase):
 		self.assertEqual(inpLatticeParams[0], testObj.lattParams["a"])
 		self.assertEqual(inpLatticeParams[1], testObj.lattParams["b"])
 		self.assertEqual(inpLatticeParams[2], testObj.lattParams["c"])
-
+	
 	def testCorrectLatticeAngles_constructor(self):
 		''' Test tCode.UnitCell class correctly converts lattice angles list into a dict '''
 		inpLatticeAngles = [20, 45, 90]
@@ -41,7 +45,7 @@ class testUnitCellClass(unittest.TestCase):
 		self.assertEqual(inpLatticeAngles[1], testObj.lattAngles["beta"])
 		self.assertEqual(inpLatticeAngles[2], testObj.lattAngles["gamma"]) 
 
-
+	
 	def testCorrectLattParamsAnglesFromVectors(self):
 		''' Test tCode.UnitCell class correctly converts vectors to lattice params and angles (hcp)'''
 		
@@ -63,7 +67,6 @@ class testUnitCellClass(unittest.TestCase):
 		for exp,act in zip(self.testLattVectsB,self.testObjA.lattVects):
 			[self.assertAlmostEqual(x,y) for x,y in zip(exp,act)]
 
-
 	def testGetVolume_lattParamsAngles(self):
 		''' Test getVolume works when the object has lattice parameters and angles defined '''
 		lattParams = [ [3.746172, 3.746172, 3.746172],
@@ -78,6 +81,7 @@ class testUnitCellClass(unittest.TestCase):
 		[self.assertAlmostEqual(expected, actual, places=4) for expected, actual in zip(expectedVolumes, actualVolumes)]
 		[print("Expected Volume:" + str(expected) + "\tActual Volume:" + str(actual)) for expected, actual in zip(expectedVolumes, actualVolumes)]
 
+
 	def testVolumeSetter(self):
 		''' Test that the volume setter works (set a volume, then get it and check its the set value) '''
 		lattParams = [1.0,2.1,3.2]
@@ -89,6 +93,7 @@ class testUnitCellClass(unittest.TestCase):
 		testObj.volume = testVolume
 		actVolume = testObj.volume
 		self.assertAlmostEqual(testVolume,actVolume)
+
 
 	def testConvAngstromToBohr(self):
 		''' Test tCode.UnitCell.convAngstromToBohr correctly works on lattice parameters and resultant volumes (volumes'''
@@ -113,6 +118,7 @@ class testUnitCellClass(unittest.TestCase):
 			self.assertAlmostEqual(expected[2], actual[2])
 		[self.assertAlmostEqual(expected, actual) for expected, actual in zip(expectedVolumes, actualVolumes)]
 
+
 	def testGetLattVectors(self):
 		testLattParams = [x*BOHR_TO_ANG for x in [3.209407, 3.209440, 5.210808] ]
 		testLattAngles = [90.0, 90.0, 120.0]
@@ -128,6 +134,37 @@ class testUnitCellClass(unittest.TestCase):
 			currExp, currAct = expectedLattVects[vectIdx], actualLattVects[vectIdx]
 			[self.assertAlmostEqual(exp,act,3) for exp,act in it.zip_longest(currExp, currAct)]
 
+
+	def testLattParamSetter_fractCoords(self):
+		''' Test that changing a lattice parameter does not alter the fractional co-ordinates '''
+		#Note this WOULD be trivially easy to pass, but at time of writing i'm using the same function to
+		#transform fractional co-ordinates whether lattice angles or params are changed. I'm doing this so
+		#i can easily test the case where fract-coords SHOULDNT change
+		expFractCoords = copy.deepcopy(self.testObjAPlusFractCoords.fractCoords)
+		origLattParams = self.testObjA.getLattParamsList()
+		self.testObjAPlusFractCoords.lattParams = {key:2*x for key,x in it.zip_longest( ["a","b","c"], origLattParams)}
+		actFractCoords = self.testObjAPlusFractCoords.fractCoords
+		for exp,act in it.zip_longest(expFractCoords,actFractCoords):
+			self.assertEqual(exp[-1],act[-1]) # The element string
+			[self.assertAlmostEqual(e,a) for e,a in zip(exp[:3],act[:3])]
+
+	def testLattParamSetterGetterConsistent(self):
+		''' simple test to see that lattParam getter returns newly set lattParams '''
+		testParams = {key:2*val for key,val in self.testObjA.lattParams.items()}
+		self.testObjA.lattParams = testParams
+		actParams = self.testObjA.lattParams
+
+		for key in self.testObjA.lattParams.keys():
+			self.assertAlmostEqual(testParams[key], actParams[key])
+
+	def testLattAngleSetterGetterConsistent(self):
+		testAngles = {key:2+val for key,val in self.testObjA.lattAngles.items()}
+		self.testObjA.lattAngles = testAngles
+		expAngles = dict(testAngles)
+		testAngles['alpha'] *= 2 #I DONT want this to affect the value in the object. 
+		actAngles = self.testObjA.lattAngles
+		for key in expAngles.keys():
+			self.assertAlmostEqual( expAngles[key], actAngles[key] )
 
 
 class testCartCoords(unittest.TestCase):

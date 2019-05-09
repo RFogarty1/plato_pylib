@@ -22,6 +22,7 @@ class testParseCastepOutFile(unittest.TestCase):
 	def tearDown(self):
 		[os.remove(x) for x in self.filePathDict.values()]
 
+
 	def testParseEnergies(self):
 		''' test tCode.parseCastepOutfile correctly reads in total energy '''
 		filePathKeys = ["fileA", "fileB"]
@@ -81,17 +82,21 @@ class testParseCastepOutFile(unittest.TestCase):
 		expectedLatticeVects = {"fileA": [ [3.746172,0,0], [1.873086,3.2442801189,0], [1.873086,1.0814267063,3.0587366296] ],
 		                        "fileB": [ [3.209401, 0.0, 0.0], [-1.6047008144378012, 2.779341786053608, 0.0], [0.0, 0.0, 5.210802] ]}
 
-		expectedFractCoords = {"fileA": [ [0.0,0.0,0.0,"Na"], [0.70710678,0.40824829,0.28867513,"Cl"] ],
+		expectedFractCoords = {"fileA": [ [0.0,0.0,0.0,"Na"], [0.5,0.5,0.5,"Cl"] ],
 		                       "fileB": [ [0.0,0.0,0.0,"Mg"], [0.333333,0.666667,0.50,"Mg"] ]}
 
+
+
 		actualLattParams, actualLattAngles, actualLatticeVects, actualFractCoords = dict(), dict(), dict(), dict()
+		allObjs = list() #For debugging
 		for fileKey in filePathKeys:
 			currFilePath = self.filePathDict[fileKey]
 			currObj = tCode.parseCastepOutfile(currFilePath)["unitCell"]
+			allObjs.append(currObj)
 			actualLattParams[fileKey], actualLattAngles[fileKey] = currObj.lattParams, currObj.lattAngles
 			actualFractCoords[fileKey] = currObj.fractCoords	
 			actualLatticeVects[fileKey] = currObj.getLattVects()
-	
+
 		for filekey in filePathKeys:
 			for pA,pB in itertools.zip_longest(expectedLattParams[filekey], actualLattParams[filekey]):
 				self.assertAlmostEqual(pA,pB)
@@ -101,6 +106,7 @@ class testParseCastepOutFile(unittest.TestCase):
 				[self.assertAlmostEqual(a,b,places=5) for a,b in itertools.zip_longest(vectA,vectB)]
 			for coA,coB in itertools.zip_longest(expectedFractCoords[filekey], actualFractCoords[filekey]):
 				[self.assertAlmostEqual(a,b, delta=1e-7) for a,b in itertools.zip_longest(coA,coB)]
+
 
 	def testParseKinCutoff(self):
 		filePaths = [ self.filePathDict["fileA"], self.filePathDict["fileB"] ]
