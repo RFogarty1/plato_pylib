@@ -51,6 +51,7 @@ class testMOInfoParsing(unittest.TestCase):
 		self.fileNoKPoints = createCP2KFullOutFileC_noKPts_moPrint()
 	def tearDown(self):
 		os.remove(self.fileWithKPoints)
+		os.remove(self.fileNoKPoints)
 
 	def testWithKPoints(self):
 		#1 row = 1 k-point
@@ -84,10 +85,6 @@ class testMOInfoParsing(unittest.TestCase):
 				self.assertTrue( np.allclose(expArray,actArray) )
 			else:
 				raise ValueError("{} is not an expected key".format(key))
-
-
-
-
 
 
 def createCP2KFullFileA():
