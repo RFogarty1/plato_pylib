@@ -61,3 +61,57 @@ def parseCellSectionCpout(fileAsList, lineIdx):
 	return unitCell,lineIdx
 
 
+
+def parseMOInfo(inpFile:"normal cpout but print MO keyword must be used"):
+	with open(inpFile,"rt") as f:
+		fileAsList = f.readlines()
+
+	lineIdx = 0
+	startSectStr = "MO EIGENVALUES AND MO OCCUPATION NUMBERS"
+	notInStartSectStr = "MO EIGENVALUES AND MO OCCUPATION NUMBERS AFTER SCF STEP 0"
+	outDict = _getInitDictForParseMO()
+
+	while lineIdx < len(fileAsList):
+		currLine = fileAsList[lineIdx]
+		if (startSectStr in currLine) and (notInStartSectStr not in currLine):
+			lineIdx = _parseSingleMoKpointSection(fileAsList, lineIdx, outDict)
+		else:
+			lineIdx += 1
+
+
+	#Change lists to None if empty
+
+	return outDict
+
+def _getInitDictForParseMO():
+	outDict = {"eigenvals":list(),
+	           "occvals": list(),
+	           "efermi":None}
+
+	return outDict
+
+def _parseSingleMoKpointSection(fileAsList, lineIdx, inpDict):
+	allEigs, allOccs = list(), list()
+	sectStartStr = "MO index"
+	sectEndStr = "Sum"
+	sectStart = False
+	while lineIdx < len(fileAsList):
+		currLine = fileAsList[lineIdx]
+		if sectStartStr in currLine:
+			sectStart = True
+		elif sectEndStr in currLine:
+			sectStart = False
+		elif sectStart:
+			splitLine = currLine.strip().split()
+			allEigs.append( float(splitLine[1])*HART_TO_EV ), allOccs.append( float(splitLine[2]) )
+		elif "Fermi energy" in currLine:
+			eFermi = float( currLine.strip().split()[-1] ) * HART_TO_EV
+			break
+
+		lineIdx += 1
+
+	inpDict["eigenvals"].append(allEigs)
+	inpDict["occvals"].append(allOccs)
+	inpDict["efermi"] = eFermi
+	return lineIdx
+
