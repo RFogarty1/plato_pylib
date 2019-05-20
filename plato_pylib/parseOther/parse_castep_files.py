@@ -84,6 +84,13 @@ def _getUnitCellObjFromTokenizedCastepCellFile(tokFile:dict):
 		lattVects.append( currVect )
 
 	#Step 2 = Get the fractional co-ords
+	fractCoords = _getFractCoordsFromTokenizedCellFile(tokFile)
+
+	return UCell.UnitCell.fromLattVects(lattVects,fractCoords=fractCoords)
+
+
+
+def _getFractCoordsFromTokenizedCellFile(tokFile):
 	fractCoords = list()
 	fractCoordStrList = [x for x in tokFile["positions_frac"].split("\n")]
 
@@ -92,7 +99,7 @@ def _getUnitCellObjFromTokenizedCastepCellFile(tokFile:dict):
 		currFract = [float(x), float(y), float(z), element]
 		fractCoords.append(currFract)
 
-	return UCell.UnitCell.fromLattVects(lattVects,fractCoords=fractCoords)
+	return fractCoords
 
 def tokenizeCastepCellFileAndRemoveBlockFromKeys(cellFilePath:str)->"lower case dict":
 	startDict = tokenizeCastepCellFile(cellFilePath)
