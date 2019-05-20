@@ -4,7 +4,16 @@ import math
 
 
 def calcVacancyE(energyNoVac, energyVac, nAtomsOrig, nVacancies=1):
-	return energyVac - ( ((nAtomsOrig-nVacancies)/nAtomsOrig) * energyNoVac )
+	return _calcEnergyToChangeNAtoms(energyNoVac, energyVac, nAtomsOrig, nAtomsOrig-nVacancies)
+
+
+def calcInterstitialE(energyNoInter, energyInter, nAtomsOrig, nInter=1):
+	return _calcEnergyToChangeNAtoms(energyNoInter, energyInter, nAtomsOrig, nAtomsOrig+nInter)
+
+
+def _calcEnergyToChangeNAtoms(energyOrig, energyFinal, nAtomsOrig, nAtomsFinal):
+	''' Low level function for calculating either interstitial or vacancy formation energies '''
+	return energyFinal - ( ((nAtomsFinal)/nAtomsOrig) * energyOrig )
 
 
 def makeVacancyUnitCell(inpUCell:"UnitCell class object", method="central"):
