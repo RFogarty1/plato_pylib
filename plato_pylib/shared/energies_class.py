@@ -1,6 +1,8 @@
 #!/usr/bin/python3
 
 
+RYD_TO_EV = 13.6056980659
+
 class EnergyVals():
 	def __init__(self, **kwargs):
 		kwargs = {k.lower():v for k,v in kwargs.items()}
@@ -13,6 +15,11 @@ class EnergyVals():
 		self.dftTotalElectronic = kwargs.get("dftTotalElectronic".lower(),None)
 		self.atomEnergy = kwargs.get("atomEnergy".lower(), None)
 		self.castepTotalElectronic = kwargs.get("castepTotalElectronic".lower(), None)
+
+	def convRydToEv(self):
+		for key in self.__dict__:
+			if getattr(self,key) is not None:
+				setattr(self, key, getattr(self, key)*RYD_TO_EV)
 
 	@property
 	def electronicCohesiveE(self):

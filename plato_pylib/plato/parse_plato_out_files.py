@@ -5,6 +5,12 @@
 from ..shared.ucell_class import UnitCell
 from ..shared.energies_class import EnergyVals
 
+
+def parsePlatoOutFile_energiesInEv(inpFilePath):
+	outDict = parsePlatoOutFile(inpFilePath)
+	outDict["energies"].convRydToEv()
+	return outDict
+
 def parsePlatoOutFile(inpFilePath):
 	with open(inpFilePath,"rt") as f:
 		inpFileList = f.readlines()
