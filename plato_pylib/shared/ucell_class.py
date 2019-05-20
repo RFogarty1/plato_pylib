@@ -313,6 +313,10 @@ class UnitCell():
 		for key in self.lattParams.keys():
 			self.lattParams[key] *= ANG_TO_BOHR
 
+	def convBohrToAng(self):
+		for key in self.lattParams.keys():
+			self.lattParams[key] *= (1/ANG_TO_BOHR)
+
 
 	#TODO: Eventually this needs to be removed. It can be accesed through a function in parseCastep at current
 	def getCastepCellStr(self, units="bohr"):
