@@ -47,7 +47,7 @@ def parseEnergiesPlatoOutFile(inpFileList:list, lineIdx:int):
 
 	while inpFileList[lineIdx].strip() != '':
 		if inpFileList[lineIdx].find("E0") != -1:
-			objDict["e0"] = float( inpFileList[lineIdx].strip().split()[2] )
+			objDict["e0coh"] = float( inpFileList[lineIdx].strip().split()[2] )
 		elif inpFileList[lineIdx].find("E1") != -1:
 			objDict["e1"] = float( inpFileList[lineIdx].strip().split()[2] )
 		lineIdx += 1
@@ -65,7 +65,7 @@ def parseEnergiesPlatoTb2(inpFileList:list, lineIdx:int):
 		if passedCohesive and line.strip() == '':
 			passedSection = True
 		elif line.find("Zeroth order energy") != -1:
-			objDict["e0"] = float( line.strip().split()[-2] )
+			objDict["e0tot"] = float( line.strip().split()[-2] )
 		elif line.find("First order energy") != -1:
 			objDict["e1"] = float( line.strip().split()[-2] )
 		elif line.find("Electron entropy") != -1:
@@ -78,6 +78,8 @@ def parseEnergiesPlatoTb2(inpFileList:list, lineIdx:int):
 		elif line.find("Atom energy") != -1:
 			objDict["atomEnergy"] = float( line.strip().split()[3] )
 		lineIdx += 1
+
+	objDict["e0coh"] = objDict["e0tot"] - objDict["atomEnergy"]
 
 	energies = EnergyVals(**objDict)
 

@@ -35,6 +35,12 @@ class testExtractEnergiesFromOutFile(unittest.TestCase):
 		actualCohesive = tCode.parsePlatoOutFile(testInpFile)["energies"].freeCohesiveE
 		self.assertAlmostEqual(expectedCohesive, actualCohesive, places=5)
 
+	def testE0CohesiveFreeEnergy_tb2(self):
+		testInpFile = self.filePathDict["tb2fileA"]
+		expectedE0Cohesive = -0.167288
+		actualE0Cohesive = tCode.parsePlatoOutFile(testInpFile)["energies"].e0Coh
+		print("actual cohesive = {}".format(actualE0Cohesive))
+		self.assertAlmostEqual(expectedE0Cohesive, actualE0Cohesive, places=5)
 
 class testExtractLatticeFromOutFile(unittest.TestCase):
 	def setUp(self):
@@ -99,7 +105,7 @@ class testParseDftFile(unittest.TestCase):
 
 class testEnergyValsClass(unittest.TestCase):
 	def testTotalElectronicTb1(self):
-		testObj = tCode.EnergyVals(e0=2.9,e1=1.1)
+		testObj = tCode.EnergyVals(e0coh=2.9,e1=1.1)
 		expectedElectronic = 4.0
 		actualElectronic = testObj.electronicCohesiveE
 		self.assertAlmostEqual(expectedElectronic, actualElectronic)
