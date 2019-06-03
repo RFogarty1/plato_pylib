@@ -4,6 +4,8 @@ import itertools as it
 import os
 import math
 
+import plato_pylib.plato.private.plato_def_input as _defInput
+
 def replaceStrInFile(inpFilePath: str, inpStr: str, replaceStr: str):
 	with open(inpFilePath, "rt") as f:
 		fileStr = f.read()
@@ -145,4 +147,17 @@ def getPlatoRcPath():
 	with open(rcFile,"rt") as f:
 		rcPath = f.read()
 	return rcPath.strip()
+
+
+
+#Functions dealing with default plato input	
+def getDefOptDict(platoProg:"str representing which plato program for file is for"):
+	''' Allowed string values are stored in _defInput.PLATO_PROG_STRS (module-level global) '''
+	return _defInput.PROG_STR_TO_DEF_DICT_OBJ[platoProg].optDictFunct()
+
+
+def getStrDictFromOptDict(optDict, platoProg:str):
+	return _defInput.PROG_STR_TO_DEF_DICT_OBJ[platoProg].optDictToStrFunct(optDict)
+
+
 
