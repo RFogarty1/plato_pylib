@@ -212,6 +212,7 @@ def getDefaultTb2StrDict():
 	 'externalfield': '0',
 	 'ftol': '0.0001',
 	 'hamiltonianflag': '1',
+	 'hopxcmethod' : '0',
 	 'integralmesh': '1\n100 30 30',
 	 'inversesk': '1',
 	 'job': '1',
@@ -253,7 +254,8 @@ def getDefaultTb2StrDict():
 	 'verbosity': '1',
 	 'writeeigenvects': '0',
 	 'writeenergyflag': '0',
-	 'xcfunctional': '1'}
+	 'xcfunctional': '1',
+	 'xtalxcmethod': '0'}
 	
 	return outDict
 

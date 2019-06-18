@@ -33,6 +33,8 @@ def loadDefaultTb2OptDict():
 	outDict["InverseSK"] = 1
 	outDict["McWedaXcFlag"] = 0
 	outDict["e0Method"] = 0
+	outDict["xtalxcmethod"] = 0
+	outDict["hopxcmethod"] = 0
 
 	outDict = {k.lower():v for k,v in outDict.items()}
 	return outDict
@@ -169,12 +171,22 @@ def _loadDefaultDictAllPlatoProgs():
 def getStrDictFromOptDict_tb1OrTb2(inpDict):
 	optDict = copy.deepcopy(inpDict)
 	_doPartialOptToStrDictAnyPlatoProg(optDict)
-	#Convert any remaining non-strings. TODO: This should be refactored such that it doesnt need to know about dft keys.
-	#All the above should be factored into its own private function
+	_partialOptToStrDictTb2OnlyKeywords(optDict)
+
+	#Convert any remaining non-strings. 
 	for k in optDict.keys():
 		optDict[k] = str(optDict[k])
 
 	return optDict
+
+def _partialOptToStrDictTb2OnlyKeywords(optDict):
+	#flags -1 to 4 just take 1 value. flag=5 takes 3 additional lines
+	try:
+		optDict["xtalxcmethod"] = " ".join([str(x) for x in optDict["xtalxcmethod"]])
+	except TypeError:
+		optDict["xtalxcmethod"] = str(optDict["xtalxcmethod"])
+	except KeyError:
+		pass
 
 def getStrDictFromOptDict_dft(inpDict):
 	optDict = copy.deepcopy(inpDict)
