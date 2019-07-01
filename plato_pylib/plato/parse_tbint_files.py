@@ -4,6 +4,7 @@
 
 import itertools
 import os
+import re
 
 import numpy as np
 
@@ -24,6 +25,8 @@ BDT_KEYS_TO_PARSER_KEYS["hop3B2C".lower()] = "hop3B2C"
 BDT_KEYS_TO_PARSER_KEYS["pairFunct".lower()] = "pairFunct"
 BDT_KEYS_TO_PARSER_KEYS["nonLocPP".lower()] = "nonLocPP"
 BDT_KEYS_TO_PARSER_KEYS["HopXcContrib".lower()] = "HopXcContrib"
+BDT_KEYS_TO_PARSER_KEYS["PairPotCorrection0".lower()] = "PairPotCorrection0"
+BDT_KEYS_TO_PARSER_KEYS["HopCorrection0".lower()] = "HopCorrection0"
 
 PARSER_TO_BDT_KEYS = {v:k for k,v in BDT_KEYS_TO_PARSER_KEYS.items()}
 
@@ -42,7 +45,8 @@ BDT_FORM4_INT_TYPES["hop3B2C".lower()] = "orb"
 BDT_FORM4_INT_TYPES["pairFunct".lower()] = "atom"
 BDT_FORM4_INT_TYPES["nonLocPP".lower()] = "orb"
 BDT_FORM4_INT_TYPES["HopXcContrib".lower()] = "orb"
-
+BDT_FORM4_INT_TYPES["PairPotCorrection0".lower()] = "atom"
+BDT_FORM4_INT_TYPES["HopCorrection0".lower()] = "orb"
 
 #----------------------------------These functions parse the relevant files------------------#
 
@@ -108,7 +112,14 @@ def parseBdtForm4(inpBdtFile: str):
 
 def parseIntegralSetInBdtFormat4(key:str, fileAsList:list, orbType:str):
 	#Figure out starting Position for these integrals
-	startIdx = [idx for idx,currLine in enumerate(fileAsList) if key.lower() in currLine.lower()]
+	regExp = re.compile( r'\b' + key.lower() + r'\b')
+	startIdx = [idx for idx,currLine in enumerate(fileAsList) if re.search(regExp,currLine.lower())]
+
+#	startIdx = [idx for idx,currLine in enumerate(fileAsList) if key.lower() in currLine.lower()]
+
+
+
+
 	if len(startIdx) == 0:
 		return None #Integrals not found in this case
 	elif len(startIdx) > 1:
