@@ -23,6 +23,9 @@ def loadDefaultTb1OptDict():
 	outDict["VxcMBCorrXtal"] = (0, 1.0) #first=flag, 2nd=weight attached to correction term
 	outDict["VanDerWaals"] = 0
 
+	outDict["addCorrectingPPFromBdt"] = 0
+	outDict["addCorrectingHopFromBdt"] = 0
+
 	#Want everything lower-case
 	outDict = {k.lower():v for k,v in outDict.items()}
 	return outDict
@@ -35,6 +38,12 @@ def loadDefaultTb2OptDict():
 	outDict["e0Method"] = 0
 	outDict["xtalxcmethod"] = 0
 	outDict["hopxcmethod"] = 0
+	outDict["xtalVnaMethod"] = 0
+	outDict["hopVnaMethod"] = 0
+	outDict["xtalVnlMethod"] = 0
+	outDict["hopVNLMethod"] = 0
+
+	outDict["addCorrectingPPFromBdt"] = 0
 
 	outDict = {k.lower():v for k,v in outDict.items()}
 	return outDict

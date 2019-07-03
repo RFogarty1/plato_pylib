@@ -84,7 +84,7 @@ def modSingleInpOption(inpFileList:"Str from single file in list format", modVal
 
 def writePlatoOutFileFromDict(filePath, optValDict:"dict, all keys/vals should be str"):
 	with open(filePath,"wt") as f:
-		for key in optValDict.keys():
+		for key in sorted(optValDict.keys()):
 			f.write(key + "\n" + optValDict[key] + "\n\n")
 
 
