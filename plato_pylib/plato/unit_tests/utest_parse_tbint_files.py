@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 
+import copy
 import itertools
 import os
 import sys
@@ -299,6 +300,19 @@ class testModIntegralsBdt(unittest.TestCase):
 		for key in newInts.keys():
 			self.assertTrue( allInitInts[key] == newInts[key] )
 
+
+class testGetCombinedTbintObjects(unittest.TestCase):
+
+	def setUp(self):
+		self.integDict = {k.lower():v for k,v in tData.loadTestBdtFileAExpectedVals_format4().items()}
+		self.expectedIntegalsSubtraction = copy.deepcopy( self.integDict["pairpot"][0] )
+		self.expectedIntegalsSubtraction.integrals[:,1] = [2.00000000, -0.00500000, -0.00000066]
+ 
+	def testSubtractionUsingPairPots(self):
+		intSetA = self.integDict["pairpot"][0]
+		intSetB = self.integDict["PairPotCorrection0".lower()][0]
+		actualIntegralSubtraction = tCode.getIntegralsAMinusBIfTheyAreSimilarIntegrals(intSetA,intSetB)
+		self.assertEqual(self.expectedIntegalsSubtraction, actualIntegralSubtraction)
 
 if __name__ == '__main__':
 	unittest.main()

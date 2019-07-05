@@ -489,6 +489,10 @@ def getAtomNamesFromInpBdtFile(inpBdtFilePath:str):
 
 
 
+
+def getIntegralsAMinusBIfTheyAreSimilarIntegrals(objA, objB):
+	return comboSimilarIntegrals(objA, objB, "sub")
+
 #Purpose of this function is to create a single TbintIntegrals object
 # by summing or subtracting integrals in two objects iff those objects have the same properties
 # (except the actual integrals)
