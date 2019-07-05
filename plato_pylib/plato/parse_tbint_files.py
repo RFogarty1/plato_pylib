@@ -28,7 +28,7 @@ BDT_KEYS_TO_PARSER_KEYS["HopXcContrib".lower()] = "HopXcContrib"
 BDT_KEYS_TO_PARSER_KEYS["PairPotCorrection0".lower()] = "PairPotCorrection0"
 BDT_KEYS_TO_PARSER_KEYS["HopCorrection0".lower()] = "HopCorrection0"
 
-PARSER_TO_BDT_KEYS = {v:k for k,v in BDT_KEYS_TO_PARSER_KEYS.items()}
+PARSER_TO_BDT_KEYS = {v.lower():k for k,v in BDT_KEYS_TO_PARSER_KEYS.items()}
 
 #Maintain a dictionary linkng keywords(in bdt file) to the type of integral (i.e. atom based or orbital based)
 BDT_FORM4_INT_TYPES = dict()
@@ -412,10 +412,11 @@ def getBdtRcut(tbintFilePath):
 
 #allInts is in the format output by the parsers
 def writeBdtFileFormat4(allInts:dict, outPath:str):
+	outDict = {k.lower():v for k,v in allInts.items()}
 	outStr = "format_4\n"
-	for key in allInts:
-		if allInts[key] is not None:
-			outStr += getBdtStr_singleIntSet_format4( allInts[key] , key)
+	for key in outDict:
+		if outDict[key] is not None:
+			outStr += getBdtStr_singleIntSet_format4( outDict[key] , key)
 	with open(outPath,"w") as f:
 		f.write(outStr)
 
