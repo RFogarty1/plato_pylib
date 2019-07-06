@@ -1,0 +1,4 @@
+langauge: python
+python:
+	- "3.5"
+script: cd test;python3 run_all_unit_tests.py
