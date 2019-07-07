@@ -20,8 +20,7 @@ def main():
 
 	print("int(result.wasSuccessful()) = {}".format( int(not result.wasSuccessful())  ))
 
-#	sys.exit( int(not result.wasSuccessful()) ) #return 0 on success, else 1
-	sys.exit(1) #TEMPORARY - need travis build to fail once
+	sys.exit( int(not result.wasSuccessful()) ) #return 0 on success, else 1
 
 if __name__ == '__main__':
 	main()
