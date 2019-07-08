@@ -1,0 +1,6 @@
+channels:
+    - kne 
+dependencies:
+    - python=3.6
+    - numpy
+    - scipy
