@@ -18,8 +18,6 @@ def main():
 	runner = unittest.TextTestRunner(verbosity=2)
 	result = runner.run(suite)
 
-	print("int(result.wasSuccessful()) = {}".format( int(not result.wasSuccessful())  ))
-
 	sys.exit( int(not result.wasSuccessful()) ) #return 0 on success, else 1
 
 if __name__ == '__main__':
