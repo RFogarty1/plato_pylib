@@ -148,6 +148,18 @@ def getPlatoRcPath():
 		rcPath = f.read()
 	return rcPath.strip()
 
+def getAbsolutePathForPlatoTightBindingDataSet(dSetPath):
+	""" Takes the relative path in the dataset of a plato input file and converts to an absolute path
+	to the relevant model data folder
+	
+	Args:
+		dsetPath: The path you pass to dataset field of a plato input file
+			
+	Returns
+		dfolderAbsPath: Absolute path to the dataset that plato will use when given dsetPath as dataset
+	
+	"""
+	return os.path.abspath( os.path.join(getTightBindingDataPath(), dSetPath) )
 
 
 #Functions dealing with default plato input	
