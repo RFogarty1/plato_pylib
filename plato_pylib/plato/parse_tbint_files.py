@@ -550,11 +550,20 @@ def comboSimilarIntegrals(objA:"TbintIntegrals object", objB:"TbintIntegrals obj
 
 #Not properly tested yet; also not even sure on the interface. Hence consider this a temporary function
 def _findIntObjInList(shellA,shellB,orbSubIdx, integralList):
-	for currInt in integralList:
+	idx = _getIdxOfOrbBasedIntInList(shellA,shellB,orbSubIdx, integralList)
+	if idx is None:
+		print("Could not find integrals with shellA={},shellB={},orbSubIdx={}",shellA,shellB,orbSubIdx)
+	else:
+		return integralList[idx]
+
+	return None	
+
+def _getIdxOfOrbBasedIntInList(shellA, shellB, orbSubIdx, integralList):
+	for idx,currInt in enumerate(integralList):
 		if (currInt.shellA==shellA) and (currInt.shellB==shellB) and (currInt.orbSubIdx==orbSubIdx):
-			return currInt
-	print("Could not find integrals with shellA={},shellB={},orbSubIdx={}",shellA,shellB,orbSubIdx)
+			return idx
 	return None
+
 
 
 #----------------------------------Storage class for individual integral tables------------------#
