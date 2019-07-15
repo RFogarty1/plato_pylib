@@ -9,25 +9,28 @@ from concurrent import futures
 
 import plato_pylib.plato.mod_plato_inp_files as platoInp
 
-def executeRunCommsParralel(allRunComms:list, maxThreads:int, quiet=None, noCommsOk=True):
+def executeRunCommsParralel(allRunComms:list, maxThreads:int, quiet=False, noCommsOk=True):
 	quietMode = quiet
 
 	jobsLeft = len(allRunComms)
-	if quietMode is None:
+	if quietMode is False:
 		print("A total of {} jobs will be run".format(jobsLeft))
 
 	#Catch the error from no-run comms given. Default is to just do nothing
 	if (jobsLeft < 1) and noCommsOk:
-		return None
+		if noCommsOk:
+			return None
+		else:
+			raise ValueError("Empty set of run-commands given")
 	else:
-		raise ValueError("Empty set of run-commands given")
+		pass
 
 	numbThreads = min(jobsLeft, maxThreads)
 
 	with futures.ThreadPoolExecutor(numbThreads) as executor:
 		for i in executor.map(_runOneComm, allRunComms):
 			jobsLeft -= 1
-			if quietMode is None:
+			if quietMode is False:
 				print("{} Jobs remaining".format(jobsLeft))
 	
 
