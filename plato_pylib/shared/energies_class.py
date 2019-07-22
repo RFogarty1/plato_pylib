@@ -56,6 +56,8 @@ class EnergyVals():
 		if self.tb2CohesiveFree is not None:
 			return self.tb2CohesiveFree
 		else:
-			raise ValueError("No information on free Cohesive Energy appears to be "
-			                 "held in current EnergyVals object")
+			return self.e0Coh + self.e1 + self.entropy
+#		else:
+#			raise ValueError("No information on free Cohesive Energy appears to be "
+#			                 "held in current EnergyVals object")
 

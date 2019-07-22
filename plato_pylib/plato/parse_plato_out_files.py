@@ -50,6 +50,8 @@ def parseEnergiesPlatoOutFile(inpFileList:list, lineIdx:int):
 			objDict["e0coh"] = float( inpFileList[lineIdx].strip().split()[2] )
 		elif inpFileList[lineIdx].find("E1") != -1:
 			objDict["e1"] = float( inpFileList[lineIdx].strip().split()[2] )
+		elif inpFileList[lineIdx].find("Entropy") != -1:
+			objDict["entropy"] = float( inpFileList[lineIdx].strip().split()[2] )
 		lineIdx += 1
 
 	energies = EnergyVals(**objDict)
