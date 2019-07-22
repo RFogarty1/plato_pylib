@@ -25,13 +25,10 @@ def getBulkModFromOutFilesAseWrapper(outFileList, **kwargs):
 	maxFev = kwargs.get("maxfev", 10000)
 
 
-	ase.eos.curve_fit = functools.partial(ase.eos.curve_fit, maxfev=maxFev)
-
-
 	allVols, allEnergies = getVolAndEnergiesForASEFromOutFileList(outFileList,**kwargs)
 
 	#And fit the bulk mod/deal with unit convs
-	outDict = getBulkModFromVolsAndEnergies(allVols,allEnergies, eosModel=eosModel)
+	outDict = getBulkModFromVolsAndEnergies(allVols,allEnergies, eosModel=eosModel,maxFev=maxFev)
 
 
 	return outDict
@@ -88,10 +85,13 @@ def getVolAndEnergiesForASEFromOutFileList(outFileList, **kwargs):
 
 	return allVols, allEnergies
 
+#TODO: Check what the actual input and volumes are meant to be
+def getBulkModFromVolsAndEnergies(volsInAngPerAtom, energiesInEv,eosModel="murnaghan", maxFev=10000):
 
-def getBulkModFromVolsAndEnergies(volsInBohrPerAtom, energiesInEv,eosModel="murnaghan"):
 
-	eos = ase.eos.EquationOfState(volsInBohrPerAtom, energiesInEv, eos=eosModel)
+	ase.eos.curve_fit = functools.partial(ase.eos.curve_fit, maxfev=maxFev)
+
+	eos = ase.eos.EquationOfState(volsInAngPerAtom, energiesInEv, eos=eosModel)
 	outDict = dict()
 	outDict["v0"], outDict["e0"], outDict["b0"] = eos.fit()
 	outDict["b0"] *= getBulkModUnitConv("ev","ang")
@@ -101,12 +101,13 @@ def getBulkModFromVolsAndEnergies(volsInBohrPerAtom, energiesInEv,eosModel="murn
 
 	allPlotData = eos.getplotdata()
 	
-	outDict["data"] = np.array( [(x,y) for x,y in itertools.zip_longest(volsInBohrPerAtom,energiesInEv)] )
+	outDict["data"] = np.array( [(x,y) for x,y in itertools.zip_longest(volsInAngPerAtom,energiesInEv)] )
 	outDict["fitdata"] = np.array( [(x,y) for x,y in itertools.zip_longest(allPlotData[4],allPlotData[5])] )
-
+	outDict["fitAtDataPoints".lower()] = np.array( [(x,y) for x,y in itertools.zip_longest(volsInAngPerAtom, eos.func( np.array(volsInAngPerAtom) ,*eos.eos_parameters)) ] )
 
 	outDict["data"] = outDict["data"][outDict["data"][:,0].argsort()]
 	outDict["fitdata"] = outDict["fitdata"][outDict["fitdata"][:,0].argsort()]
+	outDict["fitAtDataPoints".lower()] = outDict["fitAtDataPoints".lower()][outDict["fitAtDataPoints".lower()][:,0].argsort()]
 	return outDict
 
 
