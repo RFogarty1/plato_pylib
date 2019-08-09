@@ -148,18 +148,26 @@ def getPlatoRcPath():
 		rcPath = f.read()
 	return rcPath.strip()
 
-def getAbsolutePathForPlatoTightBindingDataSet(dSetPath):
+def getAbsolutePathForPlatoTightBindingDataSet(dSetPath,dtype="tightbinding"):
 	""" Takes the relative path in the dataset of a plato input file and converts to an absolute path
 	to the relevant model data folder
 	
 	Args:
 		dsetPath: The path you pass to dataset field of a plato input file
-			
+		dtype(optional): Whether tightbinding or dft model. The dft models are located in a different folder (SCF_LCAO)
 	Returns
 		dfolderAbsPath: Absolute path to the dataset that plato will use when given dsetPath as dataset
 	
 	"""
-	return os.path.abspath( os.path.join(getTightBindingDataPath(), dSetPath) )
+	if dtype=="tightbinding":
+		basePath = getTightBindingDataPath()
+	elif dtype=="dft":
+		basePath = getDftDataPath()
+	else:
+		raise ValueError("{} is an invalid argument for dtype".format(dtype))
+	return os.path.abspath(os.path.join(basePath,dSetPath))
+	
+
 
 
 #Functions dealing with default plato input	
