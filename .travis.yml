@@ -15,9 +15,10 @@ before_install:
   #Create the test environment python
   - conda env create -n testenv -f environment.yml
   - source activate testenv
-  # The next couple lines fix a crash with multiprocessing on Travis and are not specific to using Miniconda
-  - sudo rm -rf /dev/shm
-  - sudo ln -s /run/shm /dev/shm
+  # The next couple lines fix a crash with multiprocessing on Travis and are not specific to using Miniconda.
+  #Except they themselves caused a crash recently, hence removed for now since no multiprocessing is done
+#  - sudo rm -rf /dev/shm
+#  - sudo ln -s /run/shm /dev/shm
 install:
   - echo $TRAVIS_PYTHON_VERSION
   - python setup.py install

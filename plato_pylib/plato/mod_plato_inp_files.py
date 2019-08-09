@@ -1,10 +1,10 @@
 #!/usr/bin/python3
 
 import itertools as it
-import os
 import math
 
 import plato_pylib.plato.private.plato_def_input as _defInput
+import plato_pylib.plato.plato_paths as platoPaths #For backwards compatability for some of the functions
 
 def replaceStrInFile(inpFilePath: str, inpStr: str, replaceStr: str):
 	with open(inpFilePath, "rt") as f:
@@ -125,49 +125,6 @@ def _getMagVector(inpVect:iter):
 	return math.sqrt( sum( [x**2 for x in inpVect] ) )
 
 
-#Functions dealing with paths to Plato data files
-def getDataFolderPathForPlatoInpFile():
-    fullPath = getTightBindingDataPath()
-    basePath = getPlatoRcPath()
-    return os.path.relpath(fullPath,basePath)
-
-def getTightBindingDataPath():
-	rcPath = getPlatoRcPath()
-	tbExt = os.path.join("Data","TightBinding")
-	return os.path.join(rcPath, tbExt)
-
-def getDftDataPath():
-	rcPath = getPlatoRcPath()
-	dftExt = os.path.join("Data","SCF_LCAO")
-	return os.path.join(rcPath,dftExt)
-
-
-def getPlatoRcPath():
-	rcFile = os.path.join( os.path.expanduser('~'), ".platorc" )
-	with open(rcFile,"rt") as f:
-		rcPath = f.read()
-	return rcPath.strip()
-
-def getAbsolutePathForPlatoTightBindingDataSet(dSetPath,dtype="tightbinding"):
-	""" Takes the relative path in the dataset of a plato input file and converts to an absolute path
-	to the relevant model data folder
-	
-	Args:
-		dsetPath: The path you pass to dataset field of a plato input file
-		dtype(optional): Whether tightbinding or dft model. The dft models are located in a different folder (SCF_LCAO)
-	Returns
-		dfolderAbsPath: Absolute path to the dataset that plato will use when given dsetPath as dataset
-	
-	"""
-	if dtype=="tightbinding":
-		basePath = getTightBindingDataPath()
-	elif dtype=="dft":
-		basePath = getDftDataPath()
-	else:
-		raise ValueError("{} is an invalid argument for dtype".format(dtype))
-	return os.path.abspath(os.path.join(basePath,dSetPath))
-	
-
 
 
 #Functions dealing with default plato input	
@@ -180,4 +137,33 @@ def getStrDictFromOptDict(optDict, platoProg:str):
 	return _defInput.PROG_STR_TO_DEF_DICT_OBJ[platoProg].optDictToStrFunct(optDict)
 
 
+#DEPRECATED STUBS
+#Functions dealing with paths to Plato data files - Here for backwards compatability only
+def getDataFolderPathForPlatoInpFile():
+	""" DEPRECATED: Alias for getTightBindingDataPath. 
+	"""
+	return getTightBindingDataPath()
+
+
+def getTightBindingDataPath():
+	""" DEPRECATED: Alias for same function in plato_paths. See that one for docstring.
+	"""
+	return platoPaths.getTightBindingDataPath()
+
+def getDftDataPath():
+	""" DEPRECATED: Alias for same function in plato_paths. See that one for docstring.
+	"""
+	return platoPaths.getDftDataPath()
+
+
+def getPlatoRcPath():
+	""" DEPRECATED: Alias for same function in plato_paths. See that one for docstring.
+	"""
+	return platoPaths.getPlatoRcPath()
+
+
+def getAbsolutePathForPlatoTightBindingDataSet(dSetPath,dtype="tightbinding"):
+	""" DEPRECATED: Alias for same function in plato_paths. See that one for docstring.
+	"""
+	return platoPaths.getAbsolutePathForPlatoTightBindingDataSet(dSetPath,dtype=dtype)
 
