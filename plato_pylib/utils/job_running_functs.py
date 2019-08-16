@@ -63,6 +63,39 @@ def pathListToPlatoRunComms(pathList: list, platoComm: str)->list:
 
 #---------------->Inverse SK specific <------------------
 
+#Newer implementation - just getting the inverse-SK as a series of bash commands
+def invSkInputPathsToBashComms(inpPaths):
+	absPaths = [os.path.abspath(x) for x in inpPaths]
+
+	return [_getInvSkBashCommandSinglePath(x) for x in inpPaths]
+
+
+def _getInvSkBashCommandSinglePath(inpPath):
+	absPath = os.path.abspath(inpPath)
+	fileFolder, fileName = os.path.split(absPath)
+	baseFileName = os.path.splitext(fileName)[0]
+	tempFolderName = "tempdir" + "_" + baseFileName
+
+	allComms = list()
+
+	allComms.append( "cd {}".format(fileFolder) )
+	allComms.append( "mkdir {}".format(tempFolderName) )
+	allComms.append( "cp {} {}".format(fileName,tempFolderName) )
+	allComms.append( "cd {}".format(tempFolderName) )
+	allComms.append( "dft2 {}".format(baseFileName) )
+	allComms.append( "for file in *.csv" )
+	allComms.append( "do mv $file {}_$file".format(baseFileName) )
+	allComms.append( "done" )
+	allComms.append( "cp *.csv .." )
+	allComms.append( "cp *.out .." )
+	allComms.append( "rm *" )
+	allComms.append( "cd .." )
+	allComms.append( "rmdir {}".format(tempFolderName) )
+
+	commStr = ";".join(allComms)
+	return commStr
+
+#OLD IMPLEMENTATION (for backwargs compatability)
 def runInvSkParralel(inpFilePaths,nCores):
 	actStartDir = os.getcwd()
 	startDirs = list()
