@@ -44,6 +44,9 @@ def loadDefaultTb2OptDict():
 	outDict["hopVNLMethod"] = 0
 
 	outDict["addCorrectingPPFromBdt"] = 0
+	outDict["E0NonLocalXcCorr"] = 0
+	outDict["e1XtalNonLocalXcCorr"] = 0
+	outDict["e1HopNonLocalXcCorr"] = 0
 
 	outDict = {k.lower():v for k,v in outDict.items()}
 	return outDict
