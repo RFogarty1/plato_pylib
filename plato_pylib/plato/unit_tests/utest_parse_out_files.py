@@ -4,6 +4,8 @@
 import os
 import unittest
 
+import numpy as np
+
 import plato_pylib.plato.parse_plato_out_files as tCode
 
 class testExtractEnergiesFromOutFile(unittest.TestCase):
@@ -109,6 +111,46 @@ class testParseDftFile(unittest.TestCase):
 		actualNumbAtoms = tCode.parsePlatoOutFile(self.filePaths["dftA"])["numbAtoms"]
 		self.assertEqual(expectedNumbAtoms, actualNumbAtoms)
 
+
+class testParseOccFile(unittest.TestCase):
+
+	def setUp(self):
+		self.pbcsFile = createPartialOccFileWithPBCs()
+		self.noPbcsFile = createPartialOccFileNoPBCs()
+
+	def tearDown(self):
+		os.remove(self.pbcsFile)
+		os.remove(self.noPbcsFile)
+
+	def testParseOccNoPBCs(self):
+		''' parseOccFile should read values correctly when no periodic boundary conditions are applied '''
+		expDict = dict()
+		expDict["k_path"] = np.array([0.0, 0.0, 0.0])
+		expDict["eigen_vals"] = np.array([1.88352, 4.92246, 4.94033, 4.9407, 8.68629, 8.68861, 10.4299, 32.6306])
+		expDict["occs"] = np.array(( [2.0000000000, 1.0677221221, 0.4710287010, 0.4612491767, 0.0, 0.0, 0.0, 0.0] ))
+		expDict["k_weights"] = np.array(( [1] ))
+
+		parsedOccDict = tCode.parseOccFile(self.noPbcsFile)
+
+		for key in expDict.keys():
+			self.assertTrue( np.allclose(expDict[key], parsedOccDict[key]) )
+
+	def testParseOccPBCs(self):
+		''' parseOccFile should read values correctly when periodic boundary conditions are applied '''
+		expDict = dict()
+		expDict["k_path"] = np.array(([0.0,0.0,0.0],[0.0,0.0,0.00820]))
+		expDict["eigen_vals"] = np.array(([-5.86279, -1.08205, -0.895486, 8.63832, 8.63832, 10.4732, 10.4732, 10.611],
+		                             [-5.86251, -1.11491, -0.861833, 8.63859, 8.63859, 10.4729, 10.4729, 10.6091]))
+		expDict["occs"] = np.array(([1.0,1.0,1.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+		                         [1.0,1.0,1.0, 0.0, 0.0, 0.0, 0.0, 0.0]))
+		expDict["k_weights"] = np.array([0.0016000000,0.0016000000])
+
+		parsedOccDict = tCode.parseOccFile(self.pbcsFile)
+
+		for key in expDict.keys():
+			self.assertTrue( np.allclose(expDict[key], parsedOccDict[key]) )
+
+
 class testEnergyValsClass(unittest.TestCase):
 	def testTotalElectronicTb1(self):
 		testObj = tCode.EnergyVals(e0coh=2.9,e1=1.1)
@@ -116,6 +158,19 @@ class testEnergyValsClass(unittest.TestCase):
 		actualElectronic = testObj.electronicCohesiveE
 		self.assertAlmostEqual(expectedElectronic, actualElectronic)
 
+
+
+def createPartialOccFileNoPBCs():
+	filePath = os.path.join( os.getcwd(), "partialOccNoPBC.occ" )
+	with open(filePath,"wt") as f:
+		f.write("    0     8              4  0\n      1.88352  2.0000000000\n      4.92246  1.0677221221\n      4.94033  0.4710287010\n       4.9407  0.4612491767\n      8.68629  0.0000000000\n      8.68861  0.0000000000\n      10.4299  0.0000000000\n      32.6306  0.0000000000\n")
+	return filePath
+
+def createPartialOccFileWithPBCs():
+	filePath = os.path.join( os.getcwd(), "partialOccWithPBCs.occ")
+	with open(filePath,"wt") as f:
+		f.write("  2     8              4  0\nK-point 1   0.00000   0.00000   0.00000 0.0016000000\n     -5.86279  1.0000000000\n     -1.08205  1.0000000000\n    -0.895486  1.0000000000\n      8.63832  0.0000000000\n      8.63832  0.0000000000\n      10.4732  0.0000000000\n      10.4732  0.0000000000\n       10.611  0.0000000000\nK-point 2   0.00000   0.00000   0.00820 0.0016000000\n     -5.86251  1.0000000000\n     -1.11491  1.0000000000\n    -0.861833  1.0000000000\n      8.63859  0.0000000000\n      8.63859  0.0000000000\n      10.4729  0.0000000000\n      10.4729  0.0000000000\n      10.6091  0.0000000000\n")
+	return filePath
 
 
 

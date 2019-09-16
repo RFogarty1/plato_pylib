@@ -5,6 +5,7 @@
 from ..shared.ucell_class import UnitCell
 from ..shared.energies_class import EnergyVals
 
+import numpy as np
 
 def parsePlatoOutFile_energiesInEv(inpFilePath):
 	outDict = parsePlatoOutFile(inpFilePath)
@@ -139,6 +140,58 @@ def parseDftFile(fileAsList):
 
 
 
-		
+def parseOccFile(inpPath):
+	with open(inpPath) as f:
+		file_list = f.readlines()
+
+	# Initialise array for k-path and eigen_vals
+	numb_k_points = int(file_list[0].strip().split()[0])
+	numb_eigens = int(file_list[0].strip().split()[1])
+
+	#TODO: shorten slightly with refactor
+	if numb_k_points > 0:
+		eigen_vals = np.nan * np.ones(( numb_k_points, numb_eigens  )) # each row is all eigenvals for 1 k point
+		k_path = np.nan * np.ones(( numb_k_points, 3  )) # [kpoint index, x, y, z] format
+		k_weights = np.nan * np.ones (( numb_k_points, 1 ))
+		occs = np.nan * np.ones(( numb_k_points, numb_eigens ))
+	else:
+		eigen_vals = np.nan * np.ones(( 1 , numb_eigens ))
+		k_path = np.array([0.0,0.0,0.0])
+		k_weights = np.array((1.0))
+		occs = np.nan * np.ones(( 1, numb_eigens))
+
+	
+	eigen_count = 0
+	for line in file_list[1:]:
+		if line.find('K-point') != -1:
+			curr_k_point = int(line.strip().split()[1])
+			eigen_count = 0
+			k_path[curr_k_point - 1,:] = line.strip().split()[2:5]
+			k_weights[curr_k_point - 1,:] = line.strip().split()[-1]
+		elif line.strip()!='':
+			if numb_k_points>0:
+				eigen_vals[curr_k_point - 1, eigen_count] = line.strip().split()[0]
+				occs[curr_k_point - 1, eigen_count] = line.strip().split()[1]
+			else:
+				eigen_vals[0, eigen_count] = line.strip().split()[0]
+				occs[0, eigen_count] = line.strip().split()[1]
+			eigen_count +=1	
+
+	# Check for inconsitencies (e.g. remaining np.nan entries)
+	if np.any ( np.isnan(eigen_vals) ):
+		raise ValueError("""NaN value was detected while parsing eigenvalues in file {:}.
+				  Check this is a Plato *.occ file""".format(inpPath))
+	if np.any ( np.isnan(k_path) ):
+		raise ValueError("""NaN value was deteced while parsing the k-path in file {:} 
+				 (but eigenvalues appear consistent). Check this is a 
+				 Plato *.occ file""".format(inpPath))
+
+	# Return dictionary of values
+	out_dict = {'k_path' : k_path,
+		    'eigen_vals' : eigen_vals,
+	        'occs':occs,
+	        'k_weights':k_weights}
+	return out_dict
+
 
 
