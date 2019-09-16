@@ -177,3 +177,140 @@ def _parseSingleLineHamilOverlapDft2(inpLine):
 	parsedLine = types.SimpleNamespace(hVal=hVal, sVal=sVal, idx=idx)
 
 	return parsedLine
+
+
+
+
+
+
+#------------------------>Parsing .ham files below here <---------------------------------------
+
+def getOnSiteDiagHamilTermsFromHamFile(filePath):
+	diagTerms = list()
+
+	atomHamils = parseHamFile(filePath)["atomHamils".lower()]
+
+	selfAtomHamils = getOnSiteHamils(atomHamils)
+	for x in selfAtomHamils:
+		diagTerms.append( x.getDiagTerms() )
+
+	return diagTerms
+
+
+
+def parseHamFile(filePath):
+	outDict = dict()
+	
+	with open(filePath,"rt") as f:
+		fileAsList = f.readlines()
+
+	startLine, unused = parseHamHeader(fileAsList)
+	atomHamils = parseAllAtomHamilBlocks(fileAsList,startLine)
+
+	outDict["atomHamils"] = atomHamils
+
+	outDict = {k.lower():v for k,v in outDict.items()}
+	return outDict
+
+#eventually actually return the info, but for now just skip it
+def parseHamHeader(fileAsList:list):
+	listPos = 0
+	inHeader = True
+	while (listPos<len(fileAsList)) and inHeader:
+		currLine = fileAsList[listPos].strip()
+		if len(currLine.split()) == 3: #First atom info; [atomIdx, numbOrbs, numbNebs]
+			break
+		listPos += 1
+
+	return listPos, None
+
+
+
+
+#Needs to start at line with atomIdx, numbOrbs, numbNebs
+def parseAllAtomHamilBlocks(fileAsList:list, listPos:int):
+	allAtomHamilBlocks = list() #list of lists. [atomAIdx][NebIdx]
+	while listPos < len(fileAsList):
+		listPos, currHamilBlocks = parseSingleAtomHamilBlocks(fileAsList,listPos)
+		allAtomHamilBlocks.append( currHamilBlocks )
+
+	return allAtomHamilBlocks
+
+#Needs to start at line with atomIdx, numbOrbs, numbNebs
+def parseSingleAtomHamilBlocks(fileAsList:list, listPos:int):
+	atomInfoLine = fileAsList[listPos].strip().split()
+	atomIdx, atomOrbs, numbNebs= [int(x) for x in atomInfoLine[:3]]
+
+	listPos += 1
+	hamilBlocks = list()
+
+	sameAtom = True
+	while sameAtom and ( listPos<len(fileAsList) ):
+		currLine = fileAsList[listPos].strip()
+		if len( currLine.split() ) == 3:
+			break
+		else:
+			listPos, currBlock = parseSingleAtomPairHamil(fileAsList, listPos, atomIdx, atomOrbs)
+			hamilBlocks.append( currBlock )	
+
+	return listPos, hamilBlocks
+
+#Start at displacement vector line
+def parseSingleAtomPairHamil(fileAsList:list, listPos:int, atomAIdx:int, atomAOrbs:int):
+	currLine = fileAsList[listPos].strip().split()
+	atomBIdx, dispVector = currLine[0],currLine[1:]
+	sameBlock = True
+	listPos += 1
+
+	hValsByCol = list() 
+
+	while sameBlock and ( listPos<len(fileAsList) ):
+		currLine = fileAsList[listPos].strip().split()
+		if int(currLine[0]) == 1: #Always start at first row, so if first numb isnt 1 it must be the next neb idx
+			hValsByCol.append( list() )
+			for idx in range(atomAOrbs):
+				currLine = fileAsList[listPos].strip().split()
+				hValsByCol[-1].append( currLine[2] )
+				listPos+=1
+		else:
+			break
+
+	numbOrbsB = len(hValsByCol)
+	hamilData = np.zeros( (atomAOrbs,numbOrbsB) )
+	for row in range(atomAOrbs):
+		for col in range(numbOrbsB):
+			hamilData[row][col] = hValsByCol[col][row]
+
+	atomPairHamil = AtomPairHamilSubBlock(atomAIdx, atomBIdx, dispVector, hamilData)
+
+	return listPos, atomPairHamil
+
+
+def getOnSiteHamils(atomHamils:"list of AtomPairHamilSubBlock objs"):
+	onSiteHamils = list()
+	for atomIdx,unused in enumerate(atomHamils):
+		for hamil in atomHamils[atomIdx]:
+			if (hamil.distance==0) and (hamil.atomA == hamil.atomB):
+				onSiteHamils.append(hamil)
+	return onSiteHamils
+
+
+class AtomPairHamilSubBlock():
+	def __init__(self, atomAType, atomBType, dispVector, hVals:"np array"):
+		self.atomA = int(atomAType)
+		self.atomB = int(atomBType)
+		self.dispVector = [float(x) for x in dispVector]
+		self.h = hVals
+
+	@property
+	def distance(self):
+		return ( sum( [(x)**2 for x in self.dispVector] ) )**0.5
+
+	def getDiagTerms(self):
+		return list(self.h.diagonal())
+
+
+
+
+
+
