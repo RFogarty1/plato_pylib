@@ -40,7 +40,7 @@ class PlatoModelFolders():
 
 	tb1PlatoPath = PlatoPathDescriptor("tb1Model")
 	dft2PlatoPath = PlatoPathDescriptor("dft2Model")
-	dftPlatoPath = PlatoPathDescriptor("dftModel")
+	dftPlatoPath = PlatoPathDescriptor("dftModel", dataType="dft")
 
 	def __init__(self, tb1Path=None, dft2Path=None, dftPath=None):
 		""" 
