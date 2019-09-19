@@ -260,12 +260,17 @@ def parseCastepOutfile(inpFile: str) -> dict:
 			energies = EnergyVals(castepTotalElectronic=energy)
 		elif line.find("Unit Cell") != -1:
 			unitCellObj, unusedIdx = parseCastepUnitCellSection(fileList, lineIdx)
+			if unitCellObj.fractCoords is not None:
+				lastFractCoords = unitCellObj.fractCoords
 		elif line.find("MP grid size for SCF calculation") != -1:
 			scf_k_grid = [ int(x) for x in line.split()[-3:] ]
 		elif line.find("Number of kpoints used") != -1:
 			scf_numb_k = int( line.split()[-1] )
 		elif line.find("plane wave basis set cut-off") != -1:
 			kin_cut = float( line.split()[-2] )
+
+	#Deal with case of certain restrained geometry optimisations (where fract coords are only printed at the start)
+	unitCellObj.fractCoords = lastFractCoords
 
 	# Create the dictionary and return it
 	outDict = { 'numbAtoms' : numbAtoms,
@@ -317,10 +322,14 @@ def parseCastepUnitCellSection(fileList:list, startPos:int):
 		else:
 			lineIdx+=1
 
-	#Transform fract co-ords the same way as the input cell vectors (output cell vectors are directly 
-	#from the angles and lengths
-	for idx, unused in enumerate(fractCoords):
-		fractCoords[idx].append( atomsInOrder[idx] )
+
+	#Create the output unitCell
+	if len(fractCoords) == 0:
+		fractCoords = None
+
+	if fractCoords is not None:
+		for idx, unused in enumerate(fractCoords):
+			fractCoords[idx].append( atomsInOrder[idx] )
 
 	unitCellObj = UCell.UnitCell.fromLattVects(lattVectsFromFile, fractCoords=fractCoords)
 
