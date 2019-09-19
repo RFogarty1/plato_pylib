@@ -59,7 +59,7 @@ def getDefaultOptDictDft():
 	#DFT specific flags
 	outDict["integralmesh"] = 0
 	outDict["model"] = "lcao" #will correspond to 2
-	outDict["optimizemesh"] = 1
+	outDict["optimizemesh"] = 0
 	outDict["fftGridSpacing"] = 0.7
 	outDict["ACGGridSpacing"] = [30,29,3]
 	outDict["paralleliseFFT"] = 0
@@ -85,6 +85,7 @@ def getDefaultOptDictDft():
 	outDict["MixThresHold"] = 100
 	outDict["MixMetric"] = [0, 20.0]
 	outDict["SplitDensityFlag"] = 0
+	outDict["scfFlag"] = 1
 
 	outDict = {k.lower():v for k,v in outDict.items()}
 
