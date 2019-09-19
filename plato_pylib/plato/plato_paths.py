@@ -61,6 +61,10 @@ class PlatoModelFolders():
 		else:
 			return None
 
+	@tb1Model.setter
+	def tb1Model(self,value):
+		self._tb1Path = os.path.abspath(value)
+
 	@property
 	def dft2Model(self):
 		""" Full path to the FOLDER containing the model files to use for dft2 """
@@ -69,6 +73,9 @@ class PlatoModelFolders():
 		else:
 			return None
 
+	@dft2Model.setter
+	def dft2Model(self,value):
+		self._dft2Path = os.path.abspath(value)
 
 	@property
 	def dftModel(self):
@@ -78,6 +85,9 @@ class PlatoModelFolders():
 		else:
 			return None
 
+	@dftModel.setter
+	def dftModel(self,value):
+		self._dftPath = os.path.abspath(value)
 
 
 
