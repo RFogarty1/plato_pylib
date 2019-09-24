@@ -414,7 +414,7 @@ def getBdtRcut(tbintFilePath):
 def writeBdtFileFormat4(allInts:dict, outPath:str):
 	outDict = {k.lower():v for k,v in allInts.items()}
 	outStr = "format_4\n"
-	for key in outDict:
+	for key in sorted(outDict):
 		if outDict[key] is not None:
 			outStr += getBdtStr_singleIntSet_format4( outDict[key] , key)
 	with open(outPath,"w") as f:
