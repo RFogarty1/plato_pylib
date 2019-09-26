@@ -252,6 +252,8 @@ def parseCastepOutfile(inpFile: str) -> dict:
 		fileList = f.readlines()
 
 	# Loop over looking for info we want
+	numbAtoms = energy = energies = unitCellObj = scf_numb_k = scf_k_grid = kin_cut = None
+
 	for lineIdx, line in enumerate(fileList):
 		if line.find('Total number of ions in cell') != -1:
 			numbAtoms = int(line.strip().split()[-1])
@@ -311,6 +313,9 @@ def parseCastepUnitCellSection(fileList:list, startPos:int):
 				lattParams.append( currLine[2]  )
 				lattAngles.append( currLine[-1] )
 
+		if fileList[lineIdx].find("Cell Contents") != -1:
+			fractCoords, lineIdx = _parseCellContentsSection(fileList, lineIdx) 
+
 		if fileList[lineIdx].find("Fractional coordinates") != -1:
 			lineIdx += 3
 			while fileList[lineIdx].find("xx") == -1:
@@ -324,16 +329,52 @@ def parseCastepUnitCellSection(fileList:list, startPos:int):
 
 
 	#Create the output unitCell
-	if len(fractCoords) == 0:
-		fractCoords = None
-
-	if fractCoords is not None:
-		for idx, unused in enumerate(fractCoords):
-			fractCoords[idx].append( atomsInOrder[idx] )
+#	if len(fractCoords) == 0:
+#		fractCoords = None
+#
+#	if fractCoords is not None:
+#		for idx, unused in enumerate(fractCoords):
+#			fractCoords[idx].append( atomsInOrder[idx] )
 
 	unitCellObj = UCell.UnitCell.fromLattVects(lattVectsFromFile, fractCoords=fractCoords)
 
 	return unitCellObj, lineIdx
+
+
+def _parseCellContentsSection(fileAsList, lineIdx):
+	""" returns fractCoords from Cell Contents section of castep
+		
+	  Args:
+	    fileAsList(str list): Each entry is 1 line of the castep input file
+	    lineIdx(int): The index containing the line "cell contents"
+
+	  Returns
+	    fractCoords: nx4 iter with each containing [x,y,z,symbol]. Used to init UnitCell objects
+	 
+	"""
+	finished = False
+	while not finished:
+		currLine = fileAsList[lineIdx].strip()
+		if "Fractional coord" in fileAsList[lineIdx]:
+			lineIdx = lineIdx + 3
+			fractCoords = list()
+			while "xx" not in currLine:
+				currLine = fileAsList[lineIdx].strip()
+				splitLine = currLine.split()
+				if len(splitLine) == 1:
+					break
+				print("splitLine = {}".format(splitLine))
+				currCoords = [float(x) for x in splitLine[3:6]] + [splitLine[1]]
+				fractCoords.append(currCoords)
+				lineIdx = lineIdx + 1
+				print("currLine = {}".format(currLine))
+			break
+		else:
+			lineIdx = lineIdx+1
+
+
+	return fractCoords, lineIdx
+
 
 
 

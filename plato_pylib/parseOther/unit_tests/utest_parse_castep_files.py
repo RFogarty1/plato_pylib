@@ -115,6 +115,24 @@ class testParseCastepOutFile(unittest.TestCase):
 		[self.assertAlmostEqual(exp,act) for exp,act in itertools.zip_longest(expectedCutoffs,actualCutoffs)]
 
 
+class testParseCastepFileFixedCellParams(unittest.TestCase):
+
+	def setUp(self):
+		self.testFileA = createCastepOutFilePartialOnlyCellDefThenTwoSetsOfCellContents()
+
+	def tearDown(self):
+		os.remove(self.testFileA)
+
+	def testExpectedFractCoords(self):
+		expUCell = self._loadExpUnitCellA()
+		actUCell = tCode.parseCastepOutfile(self.testFileA)["unitCell"]
+		self.assertEqual(expUCell, actUCell)
+
+
+	def _loadExpUnitCellA(self):
+		outUCell = UCell.UnitCell(lattParams=[9.6,9.6,10.34] , lattAngles=[90.0,90.0,120.0])
+		outUCell.fractCoords = [ [-0.000998, -0.000176, 0.000000, "Mg"], [0.125623, 0.076656, 0.500000, "Mg"] ]
+		return outUCell
 
 class testParseCellFile(unittest.TestCase):
 
@@ -300,6 +318,14 @@ def createCastepParamFileA():
 	fileStr = "task :				geometryoptimisation\nxc_functional :			PBE\nspin_polarized :		false\nspin :				0\ncut_off_energy :		600\ngrid_scale :			2.000000000000000\nfine_grid_scale :		2.300000000000000\nfinite_basis_corr :		2\nelec_energy_tol :		1.000000000000000e-006\nmax_scf_cycles :		150\nfix_occupancy :			false\nmetals_method :			dm\nmixing_scheme :			Pulay\nsmearing_scheme: 		FermiDirac\nsmearing_width :        	0.0136 eV\nmix_charge_amp :		0.500000000000000\nmix_spin_amp :			2.000000000000000\nmix_charge_gmax :		1.500000000000000\nmix_spin_gmax :			1.500000000000000\nmix_history_length :		20\nperc_extra_bands :		40\nspin_fix :			6\ngeom_energy_tol :		1.000000000000000e-005\ngeom_force_tol :		0.010000000000000\ngeom_stress_tol :		0.050000000000000\ngeom_disp_tol :			5.000000000000000e-004\ngeom_max_iter :			200\ngeom_method :			BFGS\nfixed_npw :			false\ngeom_modulus_est :      	100.000000000000000  GPa\ncalculate_ELF :			false\ncalculate_stress :		true\npopn_calculate :		true\ncalculate_hirshfeld :		true\ncalculate_densdiff :		false\npdos_calculate_weights : 	false\nnum_dump_cycles :		0\nnum_backup_iter :		2\nopt_strategy :			speed\npage_wvfns :			0\nrun_time :			259100\ncharge :			0\n\n"
 	with open(filePath, "wt") as f:
 		f.write(fileStr)
+	return filePath
+
+
+def createCastepOutFilePartialOnlyCellDefThenTwoSetsOfCellContents():
+	filePath = os.path.join(os.getcwd(),"cell_def_and_two_cell_contents_a.castep")
+	with open(filePath,"wt") as f:
+		f.write("                           -------------------------------\n                                      Unit Cell\n                           -------------------------------\n        Real Lattice(A)                      Reciprocal Lattice(1/A)\n   4.8000000  -8.3138439   0.0000000        0.6544985  -0.3778749   0.0000000\n   4.8000000   8.3138439   0.0000000        0.6544985   0.3778749   0.0000000\n   0.0000000   0.0000000  10.3400000        0.0000000   0.0000000   0.6076582\n\n                       Lattice parameters(A)       Cell Angles\n                    a =    9.600000          alpha =   90.000000\n                    b =    9.600000          beta  =   90.000000\n                    c =   10.340000          gamma =  120.000000\n\n                       Current cell volume =  825.265399       A**3\n\n                           -------------------------------\n                                     Cell Contents\n                           -------------------------------\n                         Total number of ions in cell =   37\n                      Total number of species in cell =    1\n                        Max number of any one species =   37\n\n            xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n            x  Element    Atom        Fractional coordinates of atoms  x\n            x            Number           u          v          w      x\n            x----------------------------------------------------------x\n            x  Mg           1         0.000000   0.000000   0.000000   x\n            x  Mg           2         0.000000   0.000000   0.500000   x\n            xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n\n\n\n BFGS: Final Configuration:\n================================================================================\n\n                           -------------------------------\n                                     Cell Contents\n                           -------------------------------\n\n            xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n            x  Element    Atom        Fractional coordinates of atoms  x\n            x            Number           u          v          w      x\n            x----------------------------------------------------------x\n            x  Mg           1        -0.000998  -0.000176   0.000000   x\n            x  Mg           2         0.125623   0.076656   0.500000   x\n            xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n\n")
+
 	return filePath
 
 def createCastepGeomFileA():
