@@ -128,7 +128,6 @@ class testParseCastepFileFixedCellParams(unittest.TestCase):
 		actUCell = tCode.parseCastepOutfile(self.testFileA)["unitCell"]
 		self.assertEqual(expUCell, actUCell)
 
-
 	def _loadExpUnitCellA(self):
 		outUCell = UCell.UnitCell(lattParams=[9.6,9.6,10.34] , lattAngles=[90.0,90.0,120.0])
 		outUCell.fractCoords = [ [-0.000998, -0.000176, 0.000000, "Mg"], [0.125623, 0.076656, 0.500000, "Mg"] ]

@@ -264,6 +264,9 @@ def parseCastepOutfile(inpFile: str) -> dict:
 			unitCellObj, unusedIdx = parseCastepUnitCellSection(fileList, lineIdx)
 			if unitCellObj.fractCoords is not None:
 				lastFractCoords = unitCellObj.fractCoords
+		elif line.find("Cell Contents") != -1: #Sometimes (e.g constant vol opts) this comes without the Unit Cell section
+			fractCoords, unused = _parseCellContentsSection(fileList, lineIdx)
+			lastFractCoords = fractCoords 
 		elif line.find("MP grid size for SCF calculation") != -1:
 			scf_k_grid = [ int(x) for x in line.split()[-3:] ]
 		elif line.find("Number of kpoints used") != -1:
@@ -363,11 +366,9 @@ def _parseCellContentsSection(fileAsList, lineIdx):
 				splitLine = currLine.split()
 				if len(splitLine) == 1:
 					break
-				print("splitLine = {}".format(splitLine))
 				currCoords = [float(x) for x in splitLine[3:6]] + [splitLine[1]]
 				fractCoords.append(currCoords)
 				lineIdx = lineIdx + 1
-				print("currLine = {}".format(currLine))
 			break
 		else:
 			lineIdx = lineIdx+1
