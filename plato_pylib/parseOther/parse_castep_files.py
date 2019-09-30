@@ -319,25 +319,13 @@ def parseCastepUnitCellSection(fileList:list, startPos:int):
 		if fileList[lineIdx].find("Cell Contents") != -1:
 			fractCoords, lineIdx = _parseCellContentsSection(fileList, lineIdx) 
 
-		if fileList[lineIdx].find("Fractional coordinates") != -1:
-			lineIdx += 3
-			while fileList[lineIdx].find("xx") == -1:
-				currLine = fileList[lineIdx].strip().split()
-				fractCoords.append([ float(currLine[3]), float(currLine[4]), float(currLine[5])])
-				atomsInOrder.append( currLine[1] )
-				lineIdx += 1
-
 		else:
 			lineIdx+=1
 
 
 	#Create the output unitCell
-#	if len(fractCoords) == 0:
-#		fractCoords = None
-#
-#	if fractCoords is not None:
-#		for idx, unused in enumerate(fractCoords):
-#			fractCoords[idx].append( atomsInOrder[idx] )
+	if len(fractCoords) == 0:
+		fractCoords = None
 
 	unitCellObj = UCell.UnitCell.fromLattVects(lattVectsFromFile, fractCoords=fractCoords)
 
