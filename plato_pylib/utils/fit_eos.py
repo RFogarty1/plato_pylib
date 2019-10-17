@@ -105,6 +105,13 @@ def getBulkModFromVolsAndEnergies(volsInAngPerAtom, energiesInEv,eosModel="murna
 	outDict["fitdata"] = np.array( [(x,y) for x,y in itertools.zip_longest(allPlotData[4],allPlotData[5])] )
 	outDict["fitAtDataPoints".lower()] = np.array( [(x,y) for x,y in itertools.zip_longest(volsInAngPerAtom, eos.func( np.array(volsInAngPerAtom) ,*eos.eos_parameters)) ] )
 
+
+	#Convert to bohr
+	outDict["data"][:,0] *= ANG_TO_BOHR**3
+	outDict["fitdata"][:,0] *= ANG_TO_BOHR**3
+	outDict["fitAtDataPoints".lower()][:,0] *= ANG_TO_BOHR**3
+
+	#Sort outputs
 	outDict["data"] = outDict["data"][outDict["data"][:,0].argsort()]
 	outDict["fitdata"] = outDict["fitdata"][outDict["fitdata"][:,0].argsort()]
 	outDict["fitAtDataPoints".lower()] = outDict["fitAtDataPoints".lower()][outDict["fitAtDataPoints".lower()][:,0].argsort()]
