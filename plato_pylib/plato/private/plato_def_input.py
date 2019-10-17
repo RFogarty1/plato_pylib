@@ -47,6 +47,7 @@ def loadDefaultTb2OptDict():
 	outDict["E0NonLocalXcCorr"] = 0
 	outDict["e1XtalNonLocalXcCorr"] = 0
 	outDict["e1HopNonLocalXcCorr"] = 0
+	outDict["KineticMatrixElements"] = 0
 
 	outDict = {k.lower():v for k,v in outDict.items()}
 	return outDict
