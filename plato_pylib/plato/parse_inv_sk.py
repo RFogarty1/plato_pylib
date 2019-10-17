@@ -5,9 +5,20 @@ import itertools
 
 FLIPSHELLS=False #Plato used to label shells the wrong way round; this corrects for that if True
 
-def parseInvSK(inpFile):
+RYD_TO_EV = 13.6056980659 #TODO: factor these conversion factors into their own module
+
+def parseInvSK(inpFile, units=None):
 	with open(inpFile,"rt") as f:
 		fileAsList = f.readlines()
+
+	if units is None:
+		unitConv = 1.0
+	elif units.lower() == "ryd":
+		unitConv = 1.0
+	elif units.lower()=="ev":
+		unitConv = RYD_TO_EV
+	else:
+		raise AttributeError("units = {} is an invalid option".format(units))
 
 	allParsedLines = list()
 	screenFunctPresent = _lineHasScreenFunctField(fileAsList[0])
@@ -16,7 +27,7 @@ def parseInvSK(inpFile):
 			allParsedLines = list() #Another run was appended to this one, so we reset the parsed data
 			screenFunctPresent = _lineHasScreenFunctField(line)
 		else:
-			allParsedLines.append( InvSKField.fromOutputFileStr(line, screenFunctPresent) )
+			allParsedLines.append( InvSKField.fromOutputFileStr(line, screenFunctPresent, energyConvFactor=unitConv) )
 
 	return InvSKAllData(allParsedLines)
 
@@ -180,7 +191,7 @@ class InvSKField:
 		return True
 
 	@classmethod
-	def fromOutputFileStr(cls,outStr, screenFunctPresent=False):
+	def fromOutputFileStr(cls,outStr, screenFunctPresent=False, energyConvFactor=1.0):
 		asList = outStr.strip().split(",")
 		posA = [ float(x) for x in asList[:3] ]
 		posB = [ float(x) for x in asList[3:6] ]
@@ -202,17 +213,17 @@ class InvSKField:
 			screenFunctShift = 0
 
 		#Parse all the matrix elements
-		sError, hError = float(asList[11+screenFunctShift]), float(asList[12+screenFunctShift])
-		sSigma, hSigma = float(asList[13+screenFunctShift]), float(asList[14+screenFunctShift])	
+		sError, hError = float(asList[11+screenFunctShift]), float(asList[12+screenFunctShift])*energyConvFactor
+		sSigma, hSigma = float(asList[13+screenFunctShift]), float(asList[14+screenFunctShift])*energyConvFactor	
 		try:
-			sPi, hPi = float(asList[15+screenFunctShift]), float(asList[16+screenFunctShift])
+			sPi, hPi = float(asList[15+screenFunctShift]), float(asList[16+screenFunctShift])*energyConvFactor
 			if math.isnan(sPi):
 				sPi,hPi = None,None
 		except IndexError:
 			sPi,hPi = None,None
 
 		try:
-			sDelta,hDelta = float(asList[17+screenFunctShift]), float(asList[18+screenFunctShift])
+			sDelta,hDelta = float(asList[17+screenFunctShift]), float(asList[18+screenFunctShift])*energyConvFactor
 			if math.isnan(sDelta):
 				sDelta,hDelta = None,None
 		except IndexError:

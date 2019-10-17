@@ -5,7 +5,6 @@ import os
 import sys
 import unittest
 
-
 import plato_pylib.plato.parse_inv_sk as tCode
 
 
@@ -47,6 +46,20 @@ class testInvSKParse(unittest.TestCase):
 
 		for expRow,actRow in itertools.zip_longest(expectedHVals,actualHVals):
 			[self.assertAlmostEqual(exp,act) for exp,act in itertools.zip_longest(expRow,actRow)]
+
+	def testVsKnownHVals_spOrbs_convToEvOptions(self):
+		shellA, shellB = 0,1
+		bondType = "sigma"
+		expectedHVals = [ (5.437502, 2.9205311183),
+		                  (12.196023, 0.016898277) ]
+
+
+		invSKParsedObj = tCode.parseInvSK(self.partialFileA, units="eV")
+		actualHVals = invSKParsedObj.getAllValsOrbPair("hVal",shellA,shellB,bondType=bondType)
+
+		for expRow,actRow in itertools.zip_longest(expectedHVals,actualHVals):
+			[self.assertAlmostEqual(exp,act) for exp,act in itertools.zip_longest(expRow,actRow)]
+		
 
 class testInvSKParseWithScreenFunct(unittest.TestCase):
 	def setUp(self):
@@ -120,6 +133,7 @@ class testRemoveXtalTermsFromParsedObj(unittest.TestCase):
 	def testForObjA(self):
 		self.fakeParsedFileA.removeXtalFieldTerms()
 		self.assertTrue( self.fakeParsedFileA==self.fakeParsedFileAWithoutXtal )
+
 
 #from a compressed hcp Mg
 def createPartialInvSKFileA():
