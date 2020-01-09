@@ -328,8 +328,14 @@ def _doPartialOptToStrDictAnyPlatoProg(optDict):
 
 	if "excmbcorr".lower() in optDict.keys():
 		try:
-			flag, fract = optDict["excMbCorr".lower()]
-			optDict["excmbcorr"] = "{} {:.8f}".format( int(flag), float(fract) ) 
+			flag, other = optDict["excMbCorr".lower()]
+			if (flag >=0) and (flag <=2): #FOr these options in tb1(only) we specify a fraction to multiply the correction by 
+				optDict["excmbcorr"] = "{} {:.8f}".format( int(flag), float(other) ) 
+			elif flag == 4:
+				optDict["excmbcorr"] = "{} {}".format( int(flag), int(other) )
+			else:
+				raise ValueError("For excmbcorr flag={} a single integer is always expected".format(flag))
+			
 		except TypeError:
 			pass #For dft2 we dont need to specify the fraction of xc at time of writing
 
