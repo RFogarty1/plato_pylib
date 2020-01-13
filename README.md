@@ -5,4 +5,4 @@
 A set of low-level functions for parsing/writing/analysing outputs from the plato electronic structure program
 
 # Install
-python3 setup.py install --user --record_files.txt
+python3 setup.py install --user --record files.txt
