@@ -8,7 +8,7 @@ def parseBasFile(basFile:str):
 		fileAsList = f.readlines()	
 
 	#Initialise the output dictionary(NOT ALL KEYS HERE)
-	outDict = {"nlpp":None, "density":None, "orbitals":None, "potential":None, "path":basFile}
+	outDict = {"nlPP":None, "density":None, "orbitals":None, "potential":None, "path":basFile}
 
 	firstLine = fileAsList[0].strip().split()	
 	if int(firstLine[2]) != 0:

@@ -1,8 +1,10 @@
 #!/usr/bin/python3
 
+import copy
 import itertools
 import math
 import os
+import types
 
 import numpy as np
 
@@ -166,15 +168,35 @@ def writeGauFile(filePath, gauData:"dict, format same as the parser", fileHeader
 	                                "#n(orig orbital) = 3 l(orig orbital) = 0\n"
 	                                "#               a                           c\n"
 	              }
+
+	#Sort the dictionary out such that if keys are missing we can still write the file
+	blankOrbObj = types.SimpleNamespace( toGauStr = lambda :  "0\n" )
+	blankOtherObj = types.SimpleNamespace( toGauStr = lambda:  "0 1\n" )
+	outGauData = copy.deepcopy(gauData)
+
+	#Replace missing keys with blank objects; these have enough info to write the blank str
+	listLikeKeys = ["nlpp", "orbitals", "neutAtom"]
+
+	for key in keyToHeader.keys():
+		try:
+			unused = outGauData[key]
+		except KeyError:
+			if key=="orbitals":
+				outGauData[key] = [blankOrbObj]
+			elif key in listLikeKeys:
+				outGauData[key] = [blankOtherObj]
+			else:
+				outGauData[key] = blankOtherObj
+
 	outStr = fileHeader
 	#Orbitals first to be written
-	for currOrb in gauData["orbitals"]:
+	for currOrb in outGauData["orbitals"]:
 		outStr += keyToHeader["orbitals"] + currOrb.toGauStr(orb=True)
 	#Density/Pot
-	outStr += keyToHeader["density"] + gauData["density"].toGauStr()
-	outStr += keyToHeader["neutAtom".lower()] + gauData["neutAtom".lower()].toGauStr()
+	outStr += keyToHeader["density"] + outGauData["density"].toGauStr()
+	outStr += keyToHeader["neutAtom".lower()] + outGauData["neutAtom".lower()].toGauStr()
 	#Nl-PP
-	for currNl in gauData["nlpp"]:
+	for currNl in outGauData["nlpp"]:
 		outStr += keyToHeader["nlpp"] + currNl.toGauStr()
 	#dexc string, always constant
 	dexcStr = ("#Fitting parameters - dExc\n" +
@@ -182,10 +204,10 @@ def writeGauFile(filePath, gauData:"dict, format same as the parser", fileHeader
 	           "0 0\n")
 	outStr += dexcStr
 	#weight functs
-	if gauData["weightfuncts"] is None:
+	if outGauData["weightfuncts"] is None:
 		pass
 	else:
-		for currWeight in gauData["weightfuncts"]:
+		for currWeight in outGauData["weightfuncts"]:
 			outStr += keyToHeader["weightfuncts"] + currWeight.toGauStr(orb=True)
 
 	with open(filePath,'wt') as f:
@@ -332,7 +354,7 @@ class GauCsvGridInfo():
 class GauPolyBasis():
 	def __init__(self, exponents:"list", coeffs:"list of lists", label=None):
 		self.label = label
-		self.exponents = exponents
+		self.exponents = list(exponents)
 		self.parseCoeffs(coeffs)
 		self.nGauss = len(self.exponents)
 		self._eqTol = 1e-8 #Allowance for float-errors when comparing objs for equality
