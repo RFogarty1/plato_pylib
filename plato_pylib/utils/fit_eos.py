@@ -85,6 +85,13 @@ def getVolAndEnergiesForASEFromOutFileList(outFileList, **kwargs):
 
 	return allVols, allEnergies
 
+def getBulkModFromVolsAndEnergiesBohrAndEvUnits(volsInBohrPerAtom, energiesInEv, eosModel="murnaghan", maxFev=10000):
+	volsInAngPerAtom = np.array( volsInBohrPerAtom )
+	volsInAngPerAtom[:] *= 1/(ANG_TO_BOHR**3)
+	energies = np.array(energiesInEv)
+	return getBulkModFromVolsAndEnergies(volsInAngPerAtom, energies, eosModel=eosModel, maxFev=maxFev)
+ 
+
 #TODO: Check what the actual input and volumes are meant to be
 def getBulkModFromVolsAndEnergies(volsInAngPerAtom, energiesInEv,eosModel="murnaghan", maxFev=10000):
 
