@@ -38,6 +38,18 @@ def getStrainedLattVectsForElasticConsts(lattVects, strainParams, crystType, car
 
 #Lower lvl part of the UnitCell class interface
 def getStrainedUnitCellStructsForUnitStrainVects(uCell:"UnitCell obj", strainParams:"list", unitStrainMatrices):
+	""" Function gets strained Unit-Cell structures when given strain parameters and "unit" strain matrices
+	
+	Args:
+		uCell: (plato_pylib UnitCell object) Defines the unstrained geometry
+		strainParams: (iter of floats) The strain parameters to use; the strain matrices will be multiplied by these to get the strain to apply 
+		unitStrainMatrices: (iter of 3x3 np arrays) Each of these represents the strain to apply. No need to really be "unit" strains.
+			
+	Returns
+		outUCells: (iter of iter of UnitCell object) Each entry contains all the strained Unit cell objects for one strainMatrix. e.g outUCells[0][0] and outUCells[0][1] contain
+		           the strained cells for unitStrainMatrices[0],strainParams[0] and unitStrainMatrices[0],strainParams[1].
+	
+	"""
 	lattVects = uCell.lattVects
 	cartCoords = uCell.cartCoords
 
@@ -166,6 +178,10 @@ class ElasticOutputData:
 		self.fits = polyFits
 		self.elasticConstants = elasticDict
 
+
+def polyFitAndGetSecondDeriv(strainStress):
+	return _polyFitAndGetSecondDeriv(strainStress)
+
 def _polyFitAndGetSecondDeriv(strainStress):
 	inpVals = np.array(strainStress)
 
@@ -203,6 +219,10 @@ class QuadFitInfo:
 	def secondDeriv(self):
 		return 2*self.params[0]
 
+	def getFittedValuesForXVals(self, xVals):
+		outList = [None for x in xVals]
+		for idx,x in enumerate(xVals):
+			outList[idx] = (self.params[0]*(x**2)) + (self.params[1]*x) + self.params[2]
 
 
 def getElasticKeysInOrder(crystType):
