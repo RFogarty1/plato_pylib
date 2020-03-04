@@ -223,7 +223,7 @@ class QuadFitInfo:
 		outList = [None for x in xVals]
 		for idx,x in enumerate(xVals):
 			outList[idx] = (self.params[0]*(x**2)) + (self.params[1]*x) + self.params[2]
-
+		return outList
 
 def getElasticKeysInOrder(crystType):
 	typeToFunct = {"hexagonal":_hexElasticKeys}
