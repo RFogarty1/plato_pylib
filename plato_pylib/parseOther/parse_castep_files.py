@@ -170,7 +170,8 @@ def writeCastepCellFileFromTokens(outFilePath, inpTokens: "dict {keyword:value}"
 	tokens = {k.lower():v for k,v in inpTokens.items()}
 	fileStr = "\n"
 	reqBlockKeys = ["species_pot"]
-	for key, val in tokens.items():
+	for key in sorted(tokens.keys()):
+		val = tokens[key]
 		endVal = "\n\n"
 		if val.strip().count('\n') > 0 or key.find("%block") != -1 or (key in reqBlockKeys):
 			key = "%block " + key.replace("%block ","") + '\n'
@@ -225,11 +226,13 @@ def modCastepParamFile(filePath:str, modKeyVals:dict):
 	_writeCastepParamFileFromDict(filePath,tokenisedFile)
 
 
+def writeCastepParamFileFromDict(filePath, inpDict):
+	_writeCastepParamFileFromDict(filePath, inpDict)
 
 def _writeCastepParamFileFromDict(filePath, inpDict):
 	outFormat = "{} : {}\n"
 	with open(filePath,"wt") as f:
-		for key in inpDict:
+		for key in sorted(inpDict.keys()):
 			f.write( outFormat.format(key, inpDict[key]) )
 
 #------------->Functions for parsing the *.castep files<------------------
