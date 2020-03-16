@@ -148,6 +148,94 @@ class TestBasisSetClass(unittest.TestCase):
 		self.assertNotEqual(objA, objB)
 
 
+class TestParsedBasisFileEquality(unittest.TestCase):
+
+	def setUp(self):
+		self.inpPath = "fake_path_a"
+		self.basisSets = ["fake_obj_a","fake_obj_b"]
+		self.createTestObjs()
+
+	def createTestObjs(self):
+		self.testObjA = tCode.ParsedBasisFileCP2K(self.inpPath,self.basisSets)
+
+	def testEqualObjsCompareEqual_copiedObj(self):
+		objA = copy.deepcopy(self.testObjA)
+		self.createTestObjs()
+		objB = self.testObjA
+		self.assertEqual(objA, objB)
+
+	def testUnequalObjsCompareUnequal_diffBasisSets(self):
+		objA = copy.deepcopy(self.testObjA)
+		newBasisSets = ["this_is_new"]
+		self.assertNotEqual(newBasisSets, self.basisSets)
+		self.basisSets = newBasisSets
+		self.createTestObjs()
+		objB = self.testObjA
+		self.assertNotEqual(objA,objB)
+
+
+class TestParseCP2KBasisSet(unittest.TestCase):
+
+	def setUp(self):
+		self.expInpPath = "fake_inp_path"
+		self.expBasisA = _createExpectedBasisSetA()
+		self.expBasisB = _createExpectedBasisSetB()
+		self.createTestObjs()
+
+	def createTestObjs(self):
+		self.expObjA = tCode.ParsedBasisFileCP2K(self.expInpPath, [self.expBasisA,self.expBasisB]) 
+
+	@mock.patch("plato_pylib.parseOther.parse_cp2k_basis._readInpFileIntoIter")
+	def testExpectedOutputGiven(self, mockedFileReader):
+		mockedFileReader.side_effect = lambda x: _createTestFileAsListA()
+		actObj = tCode.parseCP2KBasisFile(self.expInpPath)
+		mockedFileReader.assert_called_once_with(self.expInpPath)
+		self.assertEqual(self.expObjA,actObj)
+
+
+#Below is data for a fake file with 2 Mg basis sets
+def _createExpectedBasisSetA():
+	#Basic info
+	element = "Mg"
+	basisNames = ["spd-2z-rc7pt0-r05pt5-1"]
+
+	#The exponent sets
+	exponentsA = [0.18835110]
+	coeffsA = [ [8.44145278, 4.38527172, 1.46989022] ]
+	lValsA = [0,1,2]
+	nValA = 3
+	exponentSetA = tCode.ExponentSetCP2K(exponentsA, coeffsA, lValsA, nValA)
+
+	exponentsB = [0.25684646, 0.41223507]
+	coeffsB = [ [6.29193240, 10.71646800, 4.67136283], [-33.73264167, -80.11784971, -35.36689601] ]
+	lValsB = [0,1,2]
+	nValB = 3
+	exponentSetB = tCode.ExponentSetCP2K(exponentsB, coeffsB, lValsB, nValB)
+
+	return tCode.BasisSetCP2K(element, basisNames, [exponentSetA,exponentSetB])
+
+
+def _createExpectedBasisSetB():
+	#Basic info
+	element = "Mg"
+	basisNames = ["fake-basis-a"]
+
+	#The exponent sets
+	exponentsA = [0.16410043, 0.19845384]
+	coeffsA = [ [6.42183555, 3.61896728], [-7.80636538, -3.70059388] ]
+	lValsA = [0,1]
+	nValA = 3
+	exponentSetA = tCode.ExponentSetCP2K(exponentsA, coeffsA, lValsA, nValA)
+
+	exponentsB = [0.20037409, 0.38555230]
+	coeffsB = [ [3.47476137, 5.55019829], [-15.08683172, -59.20857370] ]
+	lValsB = [0,1]
+	nValB = 3
+	exponentSetB = tCode.ExponentSetCP2K(exponentsB, coeffsB, lValsB, nValB)
+
+	return tCode.BasisSetCP2K(element, basisNames, [exponentSetA,exponentSetB])
+
+
 def _createExpBasisAsListA():
 	 return "Mg spd-2z-rc7pt0-r05pt5-1\n2\n 3 0 2 1 1 1 1\n     0.18835110     8.44145278     4.38527172     1.46989022\n 3 0 2 2 1 1 1\n     0.25684646     6.29193240     10.71646800     4.67136283\n     0.41223507     -33.73264167     -80.11784971     -35.36689601".strip().split("\n")
 

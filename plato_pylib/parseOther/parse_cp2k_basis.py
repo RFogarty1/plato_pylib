@@ -2,6 +2,22 @@
 import re
 
 
+def parseCP2KBasisFile(inpPath):
+	fileAsList = _readInpFileIntoIter(inpPath)
+	allBasisFileAsList = _getAllBasisSetSectionsFromCP2KCleanedFileAsList(fileAsList)
+	allBasisSets = list()
+	for x in allBasisFileAsList:
+		allBasisSets.append( _parseSingleBasisFileAsList(x) )
+
+	return ParsedBasisFileCP2K(inpPath,allBasisSets)
+
+
+#Here purely so i can mock it
+def _readInpFileIntoIter(inpPath):
+	with open(inpPath,"rt") as f:
+		fileAsList = f.readlines()
+	return fileAsList
+
 #Currently a super inefficient implementation. File needs traversing at least twice and the whole file always needs to be read, even if i only want one basis thats at the top. Generator expression with sensible terminating conditions would be best way, but annoyingly complicated
 def _getAllBasisSetSectionsFromCP2KCleanedFileAsList(fileAsList):
 	""" Takes CP2K basis file in special list format(see below) and returns an iter of the subsections for each basis set present in the file
@@ -89,8 +105,24 @@ class ParsedBasisFileCP2K():
 	""" Represents a parsed basis set file for CP2K
 	"""
 
-	def __init__(self):
-		pass
+	def __init__(self,inpPath, basisSets):
+		""" Initializer
+		
+		Args:
+			inpPath: (str) Full path to the input file
+			basisSets: (iter of BasisSetCP2K) These each represent one full basis set. The iter should be ordered in the same way they appear in the basis-set file
+				 
+		"""
+		self.inpPath = inpPath
+		self.basisSets = list(basisSets)
+
+	def __eq__(self,other):
+		attrs = ["inpPath","basisSets"]
+		for currAttr in attrs:
+			if getattr(self,currAttr) != getattr(other,currAttr):
+				return False
+		return True
+
 
 
 class BasisSetCP2K():
