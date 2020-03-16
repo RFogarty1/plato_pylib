@@ -50,10 +50,10 @@ class TestParseCP2kSingleBasisSet(unittest.TestCase):
 
 	def testNameAndElementParsedCorrectly(self):
 		expElement = "Mg"
-		expName = "spd-2z-rc7pt0-r05pt5-1"
+		expName = ["spd-2z-rc7pt0-r05pt5-1"]
 		actObj = self.runTestFunct()
 		self.assertEqual(expElement,actObj.element)
-		self.assertEqual(expName,actObj.basisName)
+		self.assertEqual(expName,actObj.basisNames)
 
 	def testBasisExpansionAsExpected(self):
 		actObj = self.runTestFunct()
@@ -100,6 +100,52 @@ class TestExponentSetClass(unittest.TestCase):
 		self.createTestObjs()
 		objB = self.testObjA
 		self.assertNotEqual(objA,objB)
+
+
+class TestBasisSetClass(unittest.TestCase):
+
+	def setUp(self):
+		self.exponentSetsA = ["fake_exp_sets"]
+		self.elementA = "Zr"
+		self.basisNamesA = ["nameA","nameB"] #The order shouldnt matter
+		self.createTestObjs()
+
+	def createTestObjs(self):
+		self.testObjA = tCode.BasisSetCP2K(self.elementA, self.basisNamesA, self.exponentSetsA)
+
+	def testEqualObjsCompareEqual_sameExceptCopied(self):
+		objA = copy.deepcopy(self.testObjA)
+		self.createTestObjs()
+		objB = self.testObjA
+		self.assertTrue( objA is not objB )
+		self.assertEqual(objA,objB)
+
+	def testEqualObjsCompareEqual_basisNameOrderChanged(self):
+		objA = copy.deepcopy(self.testObjA)
+		newBasisNames = [x for x in reversed(self.basisNamesA)]
+		self.assertNotEqual(newBasisNames, self.basisNamesA)
+		self.basisNamesA = newBasisNames
+		self.createTestObjs()
+		objB = self.testObjA
+		self.assertEqual(objA,objB)
+
+	def testUnequalObjsCompareUnequal_diffExpSets(self):
+		objA = copy.deepcopy(self.testObjA)
+		newExpSets = ["fake_new_set"]
+		self.assertNotEqual(newExpSets, self.exponentSetsA)
+		self.exponentSetsA = newExpSets
+		self.createTestObjs()
+		objB = self.testObjA
+		self.assertNotEqual(objA,objB)
+
+	def testUnequalObjsCompareUnequal_diffBasisName(self):
+		objA = copy.deepcopy(self.testObjA)
+		newBasisNames = ["totally_new_basis"]
+		self.assertNotEqual(self.basisNamesA, newBasisNames)
+		self.basisNamesA = newBasisNames
+		self.createTestObjs()
+		objB = self.testObjA
+		self.assertNotEqual(objA, objB)
 
 
 def _createExpBasisAsListA():

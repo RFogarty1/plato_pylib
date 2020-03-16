@@ -52,7 +52,7 @@ def _parseSingleBasisFileAsList(fileAsList):
 		 basisSetCP2K: (basisSetCP2K  object) Full representation of the CP2K basis set
 
 	"""
-	element, basisName = fileAsList[0].strip().split()
+	element, *basisName = fileAsList[0].strip().split()
 	basisExpansions = list()
 	nSets = int(fileAsList[1].strip())
 
@@ -84,22 +84,43 @@ def _parseNextBasisExponentSet(fileAsList):
 
 	return ExponentSetCP2K(exponents,coeffs,lVals,nVal), nLines
 
+
+class ParsedBasisFileCP2K():
+	""" Represents a parsed basis set file for CP2K
+	"""
+
+	def __init__(self):
+		pass
+
+
 class BasisSetCP2K():
 	"""Class representing a single basis set in a format convenient for CP2K
 
 	"""
-	def __init__(self, element, basisName, exponentSets):
+	def __init__(self, element, basisNames, exponentSets):
 		""" Initializer
 		
 		Args:
 			element: (str), Elemental symbol (e.g. Mg, H, He)
-			basisName: (str) The name given to the basis set in the CP2K file (e.g. DZV-GTH-q1)
+			basisNames: (str list) The names given to the basis set in the CP2K file (e.g. DZV-GTH-q1). One basis set can have more than one name, hence why its a list
 			exponentSets: (iter of ExponentSetCP2K objects) Each represents all basis functions associated with one set of exponents
 
 		"""
 		self.element = element
-		self.basisName = basisName
+		self.basisNames = list(basisNames)
 		self.exponentSets = exponentSets
+
+	def __eq__(self, other):
+		attrs = ["element", "exponentSets"]
+		for currAttr in attrs:
+			if getattr(self, currAttr) != getattr(other, currAttr):
+				return False
+
+		if sorted(self.basisNames) != sorted(other.basisNames):
+			return False
+
+		return True
+
 
 class ExponentSetCP2K():
 	"""Class representing all basis functions which share a set of exponents
