@@ -116,6 +116,38 @@ class ParsedBasisFileCP2K():
 		self.inpPath = inpPath
 		self.basisSets = list(basisSets)
 
+
+	def getUniqueBasisSet(self, element, basisName):
+		""" Gets basis set corresponding to input element and basis-set name
+		
+		Args:
+			element: (str, case insensitive) The element symbol for the basis set required (e.g. "Mg")
+			basisName: (str, case insensitive) The name of the basis set
+
+		Returns
+			outBasis: (BasisSetCP2K object) Representation of the basis set
+ 
+		Raises:
+			AssertionError: If more than one basis set matches the crietria. This shouldnt really ever happen
+			KeyError: If the basis set is not present
+		"""
+
+		searchEle, searchBasis = element.lower(), basisName.lower()
+
+		outBasisSets = list()
+		for bSet in self.basisSets:
+			currEle, currBasisNames = bSet.element.lower(), [x.lower() for x in bSet.basisNames]
+			if (searchEle==currEle) and (searchBasis in currBasisNames):
+				outBasisSets.append( bSet )
+
+		assert len(outBasisSets) < 2, "Searched basis sets should be unique, but {} found for ele={}, name={}".format( len(outBasisSets), element, basisName)
+		if len(outBasisSets) == 0:
+			raise KeyError("Basis set {} {} not found".format(element, basisName))
+
+		return outBasisSets[0]
+
+
+
 	def __eq__(self,other):
 		attrs = ["inpPath","basisSets"]
 		for currAttr in attrs:

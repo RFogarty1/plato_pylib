@@ -1,5 +1,6 @@
 
 import copy
+import itertools as it
 import unittest
 import unittest.mock as mock
 
@@ -158,6 +159,7 @@ class TestParsedBasisFileEquality(unittest.TestCase):
 	def createTestObjs(self):
 		self.testObjA = tCode.ParsedBasisFileCP2K(self.inpPath,self.basisSets)
 
+
 	def testEqualObjsCompareEqual_copiedObj(self):
 		objA = copy.deepcopy(self.testObjA)
 		self.createTestObjs()
@@ -172,6 +174,41 @@ class TestParsedBasisFileEquality(unittest.TestCase):
 		self.createTestObjs()
 		objB = self.testObjA
 		self.assertNotEqual(objA,objB)
+
+
+class TestParsedBasisClassSearch(unittest.TestCase):
+
+	def setUp(self):
+		self.inpPath = "fake_path"
+		self.eleList = ["Mg","Zr","H"]
+		self.basisNames = [ ["fake_mg"], ["fake_zr","fake_zrB"], ["fake_h"] ]
+		self.createTestObjs()
+
+	def createTestObjs(self):
+		self.mockBasisObjs = [mock.Mock() for x in self.eleList]
+		for mockObj, ele, bSet in it.zip_longest(self.mockBasisObjs, self.eleList, self.basisNames):
+			mockObj.element = ele
+			mockObj.basisNames = bSet
+
+		self.testObjA = tCode.ParsedBasisFileCP2K(self.inpPath, self.mockBasisObjs)
+
+	def testFindsExpForCorrectInput(self):
+		expObj = self.mockBasisObjs[1]
+		actObj = self.testObjA.getUniqueBasisSet( expObj.element.lower() , expObj.basisNames[1].lower() )
+		self.assertEqual(expObj, actObj)
+
+	def testRaisesForDuplicates(self):
+		self.eleList.append( self.eleList[0] )
+		self.basisNames.append( self.basisNames[0] )
+		self.createTestObjs()
+		with self.assertRaises(AssertionError):
+			self.testObjA.getUniqueBasisSet( self.eleList[-1], self.basisNames[-1][0] )
+
+	def testRaisesForMissingBasis(self):
+		testEle = "fake_element"
+		self.assertTrue( testEle not in self.eleList)
+		with self.assertRaises(KeyError):
+			self.testObjA.getUniqueBasisSet(testEle, "fake_basis_name")
 
 
 class TestParseCP2KBasisSet(unittest.TestCase):
