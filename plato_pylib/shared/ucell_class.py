@@ -53,11 +53,23 @@ def getTransformedFractCoords(origLattVects:"list of lists [[v1],[v2],[v3]]", fi
 
 class UnitCell():
 	def __init__(self,**kwargs):
+		""" Initializer
+		
+		Args:
+			All args are optional keyword args; if none are passed the object is simply empty (and will throw various errors if you try to do certain things)
+			lattParams: (len 3 float iter) [a,b,c] where a,b and c are the lattice parameters
+			lattAngles: (len 3 float iter) [alpha,beta,gamma] where these are lattice angles as traditionally defined. Namely alpha,beta,gamma are the angles between bc,ac and ab respectivetly
+			fractCoords: (iter of nx3 iter) Fractional coordinates for a list of atoms. e.g. [ [0.0,0.0,0.0], [0.5,0.5,0.5]]. Note that setting fractCoords OUTSIDE the initialiser also requires the atom symbols to be passed (e.g. [[0.0,0.0,0.0,"Mg"]]). Also note elementList SHOULD be set alongside fractCoords in the initialiser
+			elementList: (str iter) Each entry contains a string representing the element of one atom in fractCoords. Therefore
+			putCAlongZ: (Bool, default is False) If true then the 3rd lattice vector in self.lattVects will always be [0,0,c]			 
+
+		"""
 		kwargs = {k.lower():v for k,v in kwargs.items()}
 		self._lattParams = self.listToLattParams( kwargs.get( "lattParams".lower(), None ) )
 		self._lattAngles = self.listToLattAngles( kwargs.get( "lattAngles".lower(), None ) )
 		self._fractCoords = kwargs.get("fractCoords".lower(), None)
 		self._elementList = kwargs.get("elementList".lower(), None)
+		self.putCAlongZ = kwargs.get("putCAlongZ".lower(), False)
 		self._eqTolPlaces = 5
 
 
@@ -190,8 +202,8 @@ class UnitCell():
 
 	#Note that a getter is still exposed for use of keywords (e.g. disabling error checks)
 	@property
-	def lattVects(self, **kwargs):
-		return self.getLattVects()
+	def lattVects(self):
+		return self.getLattVects(putCAlongZ=self.putCAlongZ)
 
 	@lattVects.setter
 	def lattVects(self, value):
@@ -320,7 +332,7 @@ class UnitCell():
 
 	#TODO: Eventually this needs to be removed. It can be accesed through a function in parseCastep at current
 	def getCastepCellStr(self, units="bohr"):
-		lattVects = self.getLattVects()
+		lattVects = self.lattVects
 		lattStrVects = list()
 		fmt = "{:.7g}"
 		zeroTol = 1e-8 #If a component is below this, then we treat it as zero
@@ -377,7 +389,8 @@ def lattParamsAndAnglesFromLattVects(lattVectors):
 
 def lattParamsAndAnglesToLattVects(lattParams:"[a,b,c]", lattAngles:"[alpha,beta,gamma]", **kwargs):
 	kwargs = {k.lower():v for k,v in kwargs.items()}
-	testInverse = kwargs.get("testInverse", True)
+	testInverse = kwargs.get("testInverse".lower(), True)
+	putCAlongZ = kwargs.get("putCAlongZ".lower(), False)
 	testTol = kwargs.get("testTol".lower(), (0.001, 0.01) ) 
 	uVectA = [1.0, 0.0, 0.0]
 	uVectB, uVectC = [0.0,0.0,0.0], [0.0, 0.0, 0.0] 
@@ -392,6 +405,9 @@ def lattParamsAndAnglesToLattVects(lattParams:"[a,b,c]", lattAngles:"[alpha,beta
 	lattVects.append([x*lattParams[0] for x in uVectA])
 	lattVects.append([x*lattParams[1] for x in uVectB])
 	lattVects.append([x*lattParams[2] for x in uVectC])
+
+	if putCAlongZ:
+		lattVects = getLattVectorsTransformedToAlignParamCWithZ(lattVects)
 
 	#Test that these cell vectors give the input lattice params/angles
 	if testInverse:

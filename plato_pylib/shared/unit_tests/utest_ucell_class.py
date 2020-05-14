@@ -4,6 +4,7 @@ import copy
 import itertools as it
 import os
 import unittest
+import unittest.mock as mock
 
 import numpy as np
 
@@ -294,6 +295,35 @@ class TestTransformLattVectsToAlignCWithZ(unittest.TestCase):
 		self.assertAlmostEqual( actLattVects[-1][0], 0 )
 		self.assertAlmostEqual( actLattVects[-1][1], 0 )
 		self.assertEqual( expUCell, actUCell )
+
+
+class TestUcellWithLattVectsWithCAlongZ(unittest.TestCase):
+
+	def setUp(self):
+		self.lattParams = [2,2,2]
+		self.lattAngles = [90,90,90]
+		self.createTestObjs()
+
+	def createTestObjs(self):
+		self.testCellA = tCode.UnitCell(lattParams=self.lattParams, lattAngles=self.lattAngles)
+
+	@mock.patch("plato_pylib.shared.ucell_class.getLattVectorsTransformedToAlignParamCWithZ")
+	def testLattParamsToVectsFunctionReturnsExpected(self, mockedLattVectTransform):
+		expVects = mock.Mock()
+		mockedLattVectTransform.side_effect = [expVects]
+		actVects = tCode.lattParamsAndAnglesToLattVects(self.lattParams, self.lattAngles, testInverse=False, putCAlongZ=True)
+		mockedLattVectTransform.assert_called()
+		self.assertEqual(expVects, actVects)
+
+	@mock.patch("plato_pylib.shared.ucell_class.lattParamsAndAnglesToLattVects")
+	def testUCellReturnsExpLattVects(self, mockedGetLattVects):
+		self.testCellA.putCAlongZ = True
+		expVects = mock.Mock()
+		mockedGetLattVects.side_effect = [ expVects ] 
+		actVects = self.testCellA.lattVects
+		mockedGetLattVects.assert_called()
+		self.assertEqual(expVects, actVects)
+
 
 
 if __name__ == '__main__':

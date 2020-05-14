@@ -49,7 +49,9 @@ def _getSuperCellOneDim(unitCell,dimIdx:"0,1,2 for x,y,z", multiple:"int, number
 	fractCoords = UCell.getFractCoordsFromCartCoords(newCellVects,endCartCoords)
 
 	#Step 6 = Create the output object
-	return UCell.UnitCell.fromLattVects( newCellVects, fractCoords=fractCoords)
+	outCell = UCell.UnitCell.fromLattVects( newCellVects, fractCoords=fractCoords)
+	outCell.putCAlongZ = unitCell.putCAlongZ
+	return outCell
 
 
 
