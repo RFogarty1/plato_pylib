@@ -5,12 +5,14 @@ import itertools as it
 import os
 import unittest
 
+import numpy as np
+
 import plato_pylib.shared.ucell_class as tCode
 
 BOHR_TO_ANG = 1.8897259886
 
 
-class testUnitCellClass(unittest.TestCase):
+class TestUnitCellClass(unittest.TestCase):
 	def setUp(self):
 		lattParams = [3.746172, 3.746172, 3.746172]
 		lattAngles = [60.0,60.0,60.0]
@@ -167,7 +169,7 @@ class testUnitCellClass(unittest.TestCase):
 			self.assertAlmostEqual( expAngles[key], actAngles[key] )
 
 
-class testCartCoords(unittest.TestCase):
+class TestCartCoords(unittest.TestCase):
 
 	def setUp(self):
 		self.lattVects_312A = [ [18.18, 0.0        , 0],
@@ -221,7 +223,7 @@ class testCartCoords(unittest.TestCase):
 			self.assertEqual(expCart[3],actCart[3])
 
 
-class testReadWriteFiles(unittest.TestCase):
+class TestReadWriteFiles(unittest.TestCase):
 
 	def setUp(self):
 		self.fractCoordsA = [ [0.0,0.0,0.0], [0.3,0.5,0.2], [0.4,0.7,0.8] ]
@@ -249,6 +251,50 @@ class testReadWriteFiles(unittest.TestCase):
 		actObj = tCode.UnitCell.fromFile(self.testPathA_noFract)
 		self.assertEqual(expObj,actObj)
 		
+
+
+class TestTransformLattVectsToAlignCWithZ(unittest.TestCase):
+
+	def setUp(self):
+		self.lattVectA = [2.0, 0.0, 0.0]
+		self.lattVectB = [0.0, 3.0, 0.0]
+		self.lattVectC = [0.0, 0.0, 5.0]
+
+		#Note i generated this as:
+		# H = np.random.rand(3,3)
+		# u,*unused = np.linalg.svd(H)
+		self.unitaryTransformMatrix = np.array([[-0.60826506,  0.6932105 ,  0.38661715],
+		                                        [-0.72740725, -0.29191765, -0.62101754],
+		                                        [-0.31763551, -0.65897138,  0.68180965]])
+
+		self.createTestObjs()
+
+	def createTestObjs(self):
+		self.startLattVects = [self.lattVectA, self.lattVectB, self.lattVectC]
+
+	def testExpectedOutput(self):
+		transformedLattVectors = self.unitaryTransformMatrix.dot( np.array(self.startLattVects) )
+		actLattVects = tCode.getLattVectorsTransformedToAlignParamCWithZ(transformedLattVectors)
+
+		#The output latt vectors SHOULD lead to the same angles and parameters as the input. Hence we compare unit-cells made from these
+		expUCell = tCode.UnitCell.fromLattVects(transformedLattVectors)
+		actUCell = tCode.UnitCell.fromLattVects(actLattVects)
+
+		self.assertAlmostEqual( actLattVects[-1][0], 0 )
+		self.assertAlmostEqual( actLattVects[-1][1], 0 )
+		self.assertEqual( expUCell, actUCell )
+
+	def testVerySimpleCaseExpectedOutput(self):
+		expLattVects = self.startLattVects
+		actLattVects = tCode.getLattVectorsTransformedToAlignParamCWithZ(self.startLattVects)
+
+		expUCell = tCode.UnitCell.fromLattVects(expLattVects)
+		actUCell = tCode.UnitCell.fromLattVects(actLattVects)
+
+		self.assertAlmostEqual( actLattVects[-1][0], 0 )
+		self.assertAlmostEqual( actLattVects[-1][1], 0 )
+		self.assertEqual( expUCell, actUCell )
+
 
 if __name__ == '__main__':
 	unittest.main()

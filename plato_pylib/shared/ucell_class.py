@@ -436,3 +436,25 @@ def _getFractCoordsFromCartOneAtom(lattVects:"3x3 iterxiter", cartCoords:"3 item
 
 
 
+def getLattVectorsTransformedToAlignParamCWithZ(lattVectors):
+	lattParams, lattAngles = lattParamsAndAnglesFromLattVects(lattVectors)
+	lattParamA, lattParamB, lattParamC = lattParams
+	alpha, beta, gamma = lattAngles
+
+	#Each row is one lattice vector
+	outVectors = np.zeros((3,3))
+	outVectors[2,2] = lattParamC
+	outVectors[0,2] = lattParamA*math.cos(math.radians(beta ))
+	outVectors[1,2] = lattParamB*math.cos(math.radians(alpha))
+	outVectors[0,0] = math.sqrt( (lattParamA**2) - (outVectors[0,2]**2) ) 
+	outVectors[1,0] = ( (lattParamA*lattParamB*math.cos(math.radians(gamma))) - (outVectors[0,2]*outVectors[1,2]) )  / outVectors[0,0] 
+	outVectors[1,1] = math.sqrt( (lattParamB**2) - (outVectors[1,0]**2) - (outVectors[1,2]**2) )
+
+
+	#Convert to output
+	output = list()
+	for currRow in outVectors:
+		output.append( list(currRow) )
+
+	return output
+
