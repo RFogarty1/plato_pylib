@@ -2,10 +2,13 @@
 
 ''' Purpose of these functions is to aid in parsing files from tb1 and tb2 '''
 
+import re
+
 from ..shared.ucell_class import UnitCell
 from ..shared.energies_class import EnergyVals
 
 import numpy as np
+
 
 def parsePlatoOutFile_energiesInEv(inpFilePath):
 	outDict = parsePlatoOutFile(inpFilePath)
@@ -16,10 +19,15 @@ def parsePlatoOutFile(inpFilePath):
 	with open(inpFilePath,"rt") as f:
 		inpFileList = f.readlines()
 
-	if _isDftFile(inpFileList):
-		return parseDftFile(inpFileList)
-
+	#Initialize the dictionary we write to
 	outDict = dict()
+	outDict["scf_is_converged"] = None
+
+	if _isDftFile(inpFileList):
+		dftDict = parseDftFile(inpFileList)
+		outDict.update(dftDict)
+		return dftDict
+
 	lineIdx = 0
 	while lineIdx < len(inpFileList):
 		if (inpFileList[lineIdx].find("E0") != -1) and (inpFileList[lineIdx].find("Eatom") == -1):
@@ -37,11 +45,30 @@ def parsePlatoOutFile(inpFilePath):
 			lineIdx += 2
 			outDict["numbAtoms"] = int( inpFileList[lineIdx].strip().split()[-1] )
 			lineIdx += 1
+		elif inpFileList[lineIdx].find("Self Consistency Cycles") != -1:
+			lineIdx += 1
+			lineIdx, scfSectionDict = _parseScfSection(inpFileList, lineIdx)
+			outDict.update( scfSectionDict )
 		else:
 			lineIdx += 1
 
 	return outDict
 
+
+def _parseScfSection(inpFileList:list, lineIdx:int):
+
+	outDict = dict()
+
+	while "SCF Converged" not in inpFileList[lineIdx]:
+		lineIdx += 1
+
+	#Get True/False on whether scf was converged
+	pattern = r"SCF Converged: \b([a-zA-Z]+)\b"
+	isConvStrList = re.findall(pattern, inpFileList[lineIdx])
+	assert len(isConvStrList) == 1, "found {} matches for whether scf was converged".format( len(isConvStrList) )
+	outDict["scf_is_converged"] = True if isConvStrList[0].lower()=="true" else False
+
+	return lineIdx, outDict
 
 def parseEnergiesPlatoOutFile(inpFileList:list, lineIdx:int):
 	objDict = dict() #stores all keys/values needed to create EnergyVals object
