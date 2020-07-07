@@ -15,6 +15,47 @@ def superCellFromUCell(unitCell, dims):
 
 	return zShifted
 
+def getUnitCellSurroundedByNeighbourCells(unitCell):
+	""" Gets the unit cell surrouned by images in each direction; meaning a total of 27 cells merged into a supercell. Note that the original cells cartesian co-ordinates will be unchanged; meaning that most atoms will have -ve x/y/z co-ordinates
+	
+	Args:
+		unitCell: plato_pylib UnitCell object
+			 
+	Returns
+		outCell: a DIFFERENT plato_pylib UnitCell object containing the original surrounded by 26 image cells in total
+ 
+	Raises:
+	"""
+	xCell = _getCellWithImageAddedEachSide(unitCell,0)
+	yCell = _getCellWithImageAddedEachSide(xCell,1)
+	outCell = _getCellWithImageAddedEachSide(yCell,2)
+	return outCell
+
+
+def _getCellWithImageAddedEachSide(startCell, dimIdx:"0,1,2 for x,y,z"):
+	#Get translation vectors
+	startCartCoords = copy.deepcopy( startCell.cartCoords )
+	translationVector = startCell.lattVects[dimIdx]
+
+	#get the new cartesian coordinates for both directions; +ve then negative
+	positiveNewCarts, negativeNewCarts = list(), list()
+	for coord in startCartCoords:
+		currPositive = [a+b for a,b in it.zip_longest(coord[:3],translationVector[:3])] + [coord[-1]]
+		currNegative = [a-b for a,b in it.zip_longest(coord[:3],translationVector[:3])] + [coord[-1]]
+		positiveNewCarts.append(currPositive)
+		negativeNewCarts.append(currNegative)
+
+	newCartCoords = startCartCoords + positiveNewCarts + negativeNewCarts
+ 
+	#Figure out the new lattice parameters
+	lattParams = copy.deepcopy( startCell.getLattParamsList() )
+	lattParams[dimIdx] *= 3
+	lattAngles = copy.deepcopy( startCell.getLattAnglesList() )
+
+	#Return a (new) unitCell with all these new values
+	outCell = UCell.UnitCell(lattParams=lattParams, lattAngles=lattAngles)
+	outCell.cartCoords = newCartCoords
+	return outCell
 
 def _getSuperCellOneDim(unitCell,dimIdx:"0,1,2 for x,y,z", multiple:"int, number of cells in this dimension (1 means do nothing)"):
 

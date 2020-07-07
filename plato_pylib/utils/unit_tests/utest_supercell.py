@@ -65,6 +65,62 @@ class testCreateSuperCells(unittest.TestCase):
 		self.assertTrue(expectedUCell==supCell)
 
 
+
+class testSurroundCell(unittest.TestCase):
+
+	def setUp(self):
+		self.lattParams = [1,2,3]
+		self.lattAngles = [90,90,90]
+		self.fractPositions = [ [0.5,0.5,0.5] ]
+		self.createTestObjs()
+
+	def createTestObjs(self):
+		eleList = ["X" for x in self.fractPositions]
+		kwargsDict = {"lattParams":self.lattParams, "lattAngles":self.lattAngles, "fractCoords":self.fractPositions,
+		             "elementList":eleList}
+		self.testCellA = UCell.UnitCell(**kwargsDict)
+
+	def testForSimpleOneAtomCubicCell(self):
+		expCell = self._loadExpectedForSingleAtomCubicCell()
+		actCell = tCode.getUnitCellSurroundedByNeighbourCells(self.testCellA)
+		self.assertEqual(expCell,actCell)
+
+	def _loadExpectedForSingleAtomCubicCell(self):
+		a,b,c = self.lattParams
+		outLattParams = [3*x for x in self.lattParams]
+		outCell = UCell.UnitCell(lattParams=outLattParams, lattAngles=self.lattAngles)
+
+		#x direction cells
+		startCartCoords = [[0.5*a,0.5*b,0.5*c,"X"]]
+		firstImageCoords  = [[0.5*a + a, 0.5*b, 0.5*c, "X"]]
+		secondImageCoords = [[0.5*a - a, 0.5*b, 0.5*c, "X"]]
+		xDirCartCoords = startCartCoords + firstImageCoords + secondImageCoords
+
+		#y direction cells
+		plusYCells = list()
+		minusYCells = list()
+		
+		for coords in xDirCartCoords:
+			newCoordsPlus  = [ coords[0], coords[1]+b, coords[2], coords[3] ]
+			newCoordsMinus = [ coords[0], coords[1]-b, coords[2], coords[3] ]
+			plusYCells.append ( newCoordsPlus )
+			minusYCells.append( newCoordsMinus )
+		allXyCells = xDirCartCoords + plusYCells + minusYCells
+
+		#z direction cells
+		plusZCells = list()
+		minusZCells = list()
+
+		for coords in allXyCells:
+			newCoordsPlus  = [ coords[0], coords[1], coords[2]+c, coords[3] ]
+			newCoordsMinus = [ coords[0], coords[1], coords[2]-c, coords[3] ]
+			plusZCells.append(newCoordsPlus)
+			minusZCells.append(newCoordsMinus)
+		allCellsCartCoords = allXyCells + plusZCells + minusZCells
+
+		outCell.cartCoords = allCellsCartCoords
+		return outCell
+
 if __name__ == '__main__':
 	unittest.main()
 
