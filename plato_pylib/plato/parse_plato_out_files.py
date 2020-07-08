@@ -26,7 +26,7 @@ def parsePlatoOutFile(inpFilePath):
 	if _isDftFile(inpFileList):
 		dftDict = parseDftFile(inpFileList)
 		outDict.update(dftDict)
-		return dftDict
+		return outDict
 
 	lineIdx = 0
 	while lineIdx < len(inpFileList):
