@@ -4,8 +4,11 @@ import itertools
 import os
 import sys
 import unittest
+import unittest.mock as mock
 
+import plato_pylib.shared.ucell_class as uCellHelp
 import plato_pylib.parseOther.parse_cp2k_files as tCode
+
 
 import numpy as np
 
@@ -102,6 +105,51 @@ class testMOInfoParsing(unittest.TestCase):
 			else:
 				raise ValueError("{} is not an expected key".format(key))
 
+
+class TestParseCP2kGeomOutputXyzFiles(unittest.TestCase):
+
+	def setUp(self):
+		self.testFileStrA = getGeomOptXyzFileStrA()
+		#Used as tools to compare cartesian co-ordinates
+		self.testCellA = uCellHelp.UnitCell(lattParams=[60,60,60], lattAngles=[90,90,90])
+		self.testCellB = uCellHelp.UnitCell(lattParams=[60,60,60], lattAngles=[90,90,90])
+
+	@mock.patch("plato_pylib.parseOther.parse_cp2k_files._getFileStrFromInpFile")
+	def testExpectedGeomsTestFileA(self, mockedReader):
+		mockedReader.side_effect = lambda *args: self.testFileStrA
+		expCartCoordsA = [ [0.0,-0.3, 0.0,"Mg"] ]
+		expCartCoordsB = [ [0.0, 0.4, 0.0,"Mg"] ]
+		expCartCoordsTotal = [expCartCoordsA,expCartCoordsB]
+		actCartCoordsTotal = [x.cartCoords for x in tCode.parseXyzFromGeomOpt(None)["all_geoms"]]
+
+		#Compare cart coords
+		for expCoords,actCoords in itertools.zip_longest(expCartCoordsTotal, actCartCoordsTotal):
+			expCell,actCell = self.testCellA, self.testCellB
+			expCell.cartCoords = expCoords
+			actCell.cartCoords = actCoords
+			self.assertEqual(expCell,actCell)	
+	
+
+
+
+#File contains mock results of two optimisations; of which only the second are of interest really
+def getGeomOptXyzFileStrA():
+	fileStr = """
+       1
+ i =        1, E =        -0.6797723573
+ Mg         0.0000000000       -0.1000000000        0.0000000000
+       1
+ i =        2, E =        -0.7799071863
+ Mg        -0.0000000000        0.2000000000       -0.0000000000
+       1
+ i =        1, E =        -0.8797723573
+ Mg         0.0000000000       -0.3000000000        0.0000000000
+       1
+ i =        2, E =        -0.9799071863
+ Mg        -0.0000000000        0.4000000000       -0.0000000000
+
+"""
+	return fileStr
 
 def createCP2KFullFile_fccOpt():
 	filePath = os.path.join( os.getcwd(), "full_file_fcc_mg_opt.cpout" )

@@ -1,8 +1,9 @@
 #!/usr/bin/python3
 
-
+import itertools as it
 from plato_pylib.shared.ucell_class import UnitCell
 from plato_pylib.shared.energies_class import EnergyVals 
+from . import parse_xyz_files as parseXyzHelp
 
 RYD_TO_EV = 13.6056980659
 HART_TO_EV = 2*RYD_TO_EV
@@ -121,3 +122,38 @@ def _parseSingleMoKpointSection(fileAsList, lineIdx, inpDict):
 	inpDict["efermi"] = eFermi
 	return lineIdx
 
+
+def parseXyzFromGeomOpt(inpFile):
+	outFileStr = _getFileStrFromInpFile(inpFile)
+	fileAsList = [x for x in outFileStr.split("\n") if x.strip()!='']
+
+	#Step 1 is to split the file up into individual strings for an xyz parser
+	lineIdx = 0
+	while lineIdx < len(fileAsList):
+		nAtomsLine, commentLine = fileAsList[lineIdx], fileAsList[lineIdx+1]
+		commentLine = commentLine.replace(","," ")
+		nAtoms = int( nAtomsLine.strip() )
+		geomIdx = int(commentLine.strip().split()[2])
+		if (geomIdx==1): #This means we only take geometries from the current job; not previous jobs of the same name
+			startLines, endLines = list(), list()
+
+		startLines.append(lineIdx)
+		endLines.append(lineIdx+nAtoms+1)
+		lineIdx += nAtoms + 2 #1 line per atom, 1 for comment line and we then need 1 more to move onto the next step
+
+	#Get the parsed xyz dicts for each
+	parsedGeoms = list()
+	for start,end in it.zip_longest(startLines,endLines):
+		currXyzAsList = fileAsList[start:end+1]
+		parsedGeoms.append( parseXyzHelp._parseStandardXyzFile(currXyzAsList) )
+
+	#Convert into the outDict format we want
+	outDict = dict()
+	outDict["all_geoms"] = parsedGeoms
+
+	return outDict
+
+def _getFileStrFromInpFile(inpFile):
+	with open(inpFile,"rt") as f:
+		outStr = f.read()
+	return outStr
