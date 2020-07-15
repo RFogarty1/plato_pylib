@@ -12,8 +12,7 @@ def parseCpout(outFile):
 	with open(outFile,"rt") as f:
 		fileAsList = f.readlines()
 
-	outDict = dict()
-	outDict["numbAtoms"] = 0
+	outDict = _getInitCp2kOutDict()
 
 	lineIdx=0
 	while lineIdx < len(fileAsList):
@@ -29,14 +28,21 @@ def parseCpout(outFile):
 			outDict["numbAtoms"] += int( currLine.split()[-1]  ) 
 			lineIdx += 1
 		elif currLine.find("PROGRAM STARTED AT") !=-1: #Reset certain counters every time we find a new start of file
-			outDict["numbAtoms"] = 0
+			outDict = _getInitCp2kOutDict()
+			lineIdx += 1
+		elif currLine.find("OPTIMIZATION STEP") != -1:
+			outDict["multiple_geom_present"] = True
 			lineIdx += 1
 		else:
 			lineIdx +=1
 
 	return outDict
 
-
+def _getInitCp2kOutDict():
+	outDict = dict()
+	outDict["numbAtoms"] = 0
+	outDict["multiple_geom_present"] = False #Probably actually a useless output
+	return outDict
 
 def parseCellSectionCpout(fileAsList, lineIdx):
 	lattParams = list()
