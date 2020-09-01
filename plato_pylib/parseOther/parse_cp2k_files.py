@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 import itertools as it
+import types
 from plato_pylib.shared.ucell_class import UnitCell
 from plato_pylib.shared.energies_class import EnergyVals 
 from . import parse_xyz_files as parseXyzHelp
@@ -10,40 +11,99 @@ HART_TO_EV = 2*RYD_TO_EV
 
 
 def parseCpout(outFile):
-	with open(outFile,"rt") as f:
+	fileAsList = _getFileAsListFromInpFile(outFile)
+	parser = _getStandardCpoutParser()
+	outDict = parser.getOutDictFromFileAsList(fileAsList)
+	return outDict
+
+def _getStandardCpoutParser():
+	outParser = CpoutFileParser()
+	condNumbDeco = getDecoToAttachSectionParserToCpoutParser("OVERLAP MATRIX CONDITION NUMBER AT GAMMA POINT", _parseOverlapCondSection)
+	condNumbDeco(outParser)
+	return outParser
+
+def _getFileAsListFromInpFile(inpFile):
+	with open(inpFile,"rt") as f:
 		fileAsList = f.readlines()
+	return fileAsList
 
-	outDict = _getInitCp2kOutDict()
+#Want to introduce a way to add a new section to parse without directly modifying the parse source code
+#(justified by open-closed principle)
+def getDecoToAttachSectionParserToCpoutParser(pattern, parseFunction):
+	""" Attaches a function to inpCls (which should be CpoutFileParser) for parsing a section of the output file
+	
+	Args:
+		pattern: (str) The pattern to search for in a single line of a cpout file. Finding the pattern should trigger the parse function
+		parseFunction: Function with interface parsedDict, lineIdx = parseFunction(fileAsList, lineIdx). lineIdx is the index in the file where the initial arg is passed (when inp-arg) and where the section is over (when it appears as outArg). ParsedDict is simplyy a dictionary containing key:val pairs for this section; this is used to update the main dictionary the parser outputs.
+ 
+	Returns
+		parseSectionDeco: Decorator for attaching this section parser to the overall CpoutFileParser. After calling parseSectionDeco(CpoutFileParser) any parser instances should be apply "parseFunction" upon finding "pattern" in any file its passed. Thus, this is essentially acting as a hook function for the parser behaviour.
 
-	lineIdx=0
-	while lineIdx < len(fileAsList):
-		currLine = fileAsList[lineIdx].strip()
-		if currLine.find("CELL|") != -1:
-			outDict["unitCell"], lineIdx = parseCellSectionCpout(fileAsList,lineIdx)
-		elif currLine.find("Total energy:") != -1:
-			totalE = float( currLine.split()[-1] ) * HART_TO_EV
-			outDict["energy"] = totalE
-			outDict["energies"] = EnergyVals(dftTotalElectronic=totalE)
-			lineIdx += 1
-		elif currLine.find("Number of atoms:") != -1:
-			outDict["numbAtoms"] += int( currLine.split()[-1]  ) 
-			lineIdx += 1
-		elif currLine.find("PROGRAM STARTED AT") !=-1: #Reset certain counters every time we find a new start of file
-			outDict = _getInitCp2kOutDict()
-			lineIdx += 1
-		elif currLine.find("OPTIMIZATION STEP") != -1:
-			outDict["multiple_geom_present"] = True
-			lineIdx += 1
-		else:
-			lineIdx +=1
+	"""
+	def decoFunct(inpCls):
+		inpCls.extraSingleLinePatterns.append(pattern)
+		inpCls.extraFunctsToParseFromSingleLine.append(parseFunction)
+	return decoFunct
 
-	return outDict
 
-def _getInitCp2kOutDict():
-	outDict = dict()
-	outDict["numbAtoms"] = 0
-	outDict["multiple_geom_present"] = False #Probably actually a useless output
-	return outDict
+#Parse from single line has the interface outDict, lineIdx = parseSectionStartFromLine(fileAsList, lineIdx)
+class CpoutFileParser():
+	"""Class used to parse CP2K files; NOT meant to be called directly in code; At time of writing _getStandardCpoutParser() is the most sensible way to create this object while the parseCpout function is the best way to parse a CP2K output file
+
+	"""
+	extraSingleLinePatterns = list()
+	extraFunctsToParseFromSingleLine = list()
+
+	def getOutDictFromFileAsList(self, fileAsList):
+		outDict = self._getInitCp2kOutDict()
+		lineIdx=0
+
+		while lineIdx < len(fileAsList):
+			currLine = fileAsList[lineIdx].strip()
+			if currLine.find("CELL|") != -1:
+				outDict["unitCell"], lineIdx = parseCellSectionCpout(fileAsList,lineIdx)
+			elif currLine.find("Total energy:") != -1:
+				totalE = float( currLine.split()[-1] ) * HART_TO_EV
+				outDict["energy"] = totalE
+				outDict["energies"] = EnergyVals(dftTotalElectronic=totalE)
+				lineIdx += 1
+			elif currLine.find("Number of atoms:") != -1:
+				outDict["numbAtoms"] += int( currLine.split()[-1]  ) 
+				lineIdx += 1
+			elif currLine.find("PROGRAM STARTED AT") !=-1: #Reset certain counters every time we find a new start of file
+				outDict = self._getInitCp2kOutDict()
+				lineIdx += 1
+			elif currLine.find("OPTIMIZATION STEP") != -1:
+				outDict["multiple_geom_present"] = True
+				lineIdx += 1
+			elif self._patternInExtraSingleLinePatterns(currLine):
+				lineIdx = self._updateDictBasedOnFindingSingleLinePatterns(fileAsList, lineIdx, outDict)
+			else:
+				lineIdx +=1
+	
+		return outDict
+
+	def _patternInExtraSingleLinePatterns(self, currLine):
+		for x in self.extraSingleLinePatterns:
+			if currLine.find(x) != -1:
+				return True
+		return False
+
+	#Should work with multiple parse-functions on the same input pattern; though unlikely that would ever be a good idea (and returned lineIdx will just be that of the LAST matching pattern)
+	def _updateDictBasedOnFindingSingleLinePatterns(self, fileAsList, lineIdx, inpDict):
+		outLineIdx = lineIdx
+		for funct,pattern in it.zip_longest(self.extraFunctsToParseFromSingleLine,self.extraSingleLinePatterns):
+			if fileAsList[lineIdx].find(pattern) != -1:
+				updateDict, outLineIdx = funct(fileAsList, lineIdx)
+				inpDict.update(updateDict)
+		return outLineIdx
+
+
+	def _getInitCp2kOutDict(self):
+		outDict = dict()
+		outDict["numbAtoms"] = 0
+		outDict["multiple_geom_present"] = False #Probably actually a useless output
+		return outDict
 
 def parseCellSectionCpout(fileAsList, lineIdx):
 	lattParams = list()
@@ -121,6 +181,34 @@ def _parseSingleMoKpointSection(fileAsList, lineIdx, inpDict):
 	inpDict["occvals"].append(allOccs)
 	inpDict["efermi"] = eFermi
 	return lineIdx
+
+
+def _parseOverlapCondSection(fileAsList, lineIdx):
+	outDict = dict()
+	outDict["overlap_condition_number"] = None
+	retOutObj = False
+	outObj = types.SimpleNamespace( estimate=types.SimpleNamespace(oneNorm=None),
+	                                diag=types.SimpleNamespace(oneNorm=None, twoNorm=None) )  
+ 
+	endStr = "Number of electrons"
+	while endStr not in fileAsList[lineIdx]:
+		if "1-Norm Condition Number (Estimate)" in fileAsList[lineIdx]:
+			lineIdx += 1
+			outObj.estimate.oneNorm = float( fileAsList[lineIdx].split("=")[1].strip().split()[0] )
+			retOutObj = True
+		elif "Condition Numbers using Diagonalization" in fileAsList[lineIdx]:
+			lineIdx += 1
+			outObj.diag.oneNorm = float( fileAsList[lineIdx].split("=")[-1].strip().split()[0] )
+			lineIdx += 1
+			outObj.diag.twoNorm = float( fileAsList[lineIdx].split("=")[-1].strip().split()[0] )
+			retOutObj = True
+		else:
+			lineIdx += 1
+	
+	if retOutObj:
+		outDict["overlap_condition_number"] = outObj
+
+	return outDict,lineIdx-1
 
 
 def parseXyzFromGeomOpt(inpFile):

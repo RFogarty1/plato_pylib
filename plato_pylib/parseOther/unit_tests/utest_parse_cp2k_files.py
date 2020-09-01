@@ -3,6 +3,7 @@
 import itertools
 import os
 import sys
+import types
 import unittest
 import unittest.mock as mock
 
@@ -11,6 +12,31 @@ import plato_pylib.parseOther.parse_cp2k_files as tCode
 
 
 import numpy as np
+
+
+
+def createStubClassForTestingAttachingFunctions():
+	class StubClassForTestingAttachingFuncts():
+		extraSingleLinePatterns = list()
+		extraFunctsToParseFromSingleLine = list()
+	return StubClassForTestingAttachingFuncts
+
+#NOTE: I can actually also test the attaching to instances rather than the full class maybe. May or may not require
+#that i set an initializer to (likely shallow) copy the initial lists
+class testAttachExtraCommandToParser(unittest.TestCase):
+
+	def setUp(self):
+		self.createTestObjs()
+
+	def createTestObjs(self):
+		self.testClsA = createStubClassForTestingAttachingFunctions()
+
+	def testPatternGetsAppended(self):
+		testPattern, testFunct = mock.Mock(), mock.Mock()
+		decoObj = tCode.getDecoToAttachSectionParserToCpoutParser(testPattern, testFunct)
+		decoObj(self.testClsA)
+		self.assertEqual( testPattern,self.testClsA.extraSingleLinePatterns[-1] )
+		self.assertEqual( testFunct, self.testClsA.extraFunctsToParseFromSingleLine[-1] )
 
 #Tests related to parsing of the output file (e.g. outfile.cpout in cp2k.sopt -o outfile.cpout *.inp)
 class testCPoutParsing(unittest.TestCase):
@@ -63,6 +89,7 @@ class testCPoutParsing(unittest.TestCase):
 		actLattParams = tCode.parseCpout(self.fullFilePathB)["unitCell"].getLattParamsList()
 		[self.assertAlmostEqual(exp,act) for exp,act in itertools.zip_longest(expectedLattParams,actLattParams)]
 
+
 class testMOInfoParsing(unittest.TestCase):
 
 	def setUp(self):
@@ -104,6 +131,79 @@ class testMOInfoParsing(unittest.TestCase):
 				self.assertTrue( np.allclose(expArray,actArray) )
 			else:
 				raise ValueError("{} is not an expected key".format(key))
+
+
+class TestCP2KOverlapConditionParsing(unittest.TestCase):
+
+	def setUp(self):
+		self.createTestObjs()
+
+	def createTestObjs(self):
+		self.sectionA = self._loadSectionNoDiag()
+		self.fileAsListA = self.sectionA.split("\n")
+		self.startIdxA = 6 #zeroth energy is a blank line
+
+		self.sectionB = self._loadSectionWithDiag()
+		self.fileAsListB = self.sectionB.split("\n")
+		self.startIdxB = 6
+
+
+	def _loadSectionNoDiag(self):
+		return """
+ RS_GRID| Information for grid number                                          4
+ RS_GRID|   Bounds   1             -2       1                Points:           4
+ RS_GRID|   Bounds   2             -2       1                Points:           4
+ RS_GRID|   Bounds   3            -18      17                Points:          36
+
+ OVERLAP MATRIX CONDITION NUMBER AT GAMMA POINT
+ 1-Norm Condition Number (Estimate)
+   CN : |A|*|A^-1|:  3.448E+001 *  2.507E+003   = 8.645E+004  Log(1-CN):  4.9368
+
+ Number of electrons:                                                         16
+ Number of occupied orbitals:                                                  8
+ Number of molecular orbitals:                                                16
+"""
+
+	def _loadSectionWithDiag(self):
+		return """
+ RS_GRID| Information for grid number                                          4
+ RS_GRID|   Bounds   1             -2       1                Points:           4
+ RS_GRID|   Bounds   2             -2       1                Points:           4
+ RS_GRID|   Bounds   3            -18      17                Points:          36
+
+ OVERLAP MATRIX CONDITION NUMBER AT GAMMA POINT
+ 1-Norm Condition Number (Estimate)
+   CN : |A|*|A^-1|:  1.840E+001 *  1.468E+003   = 2.701E+004  Log(1-CN):  4.4315
+ 1-Norm and 2-Norm Condition Numbers using Diagonalization
+   CN : |A|*|A^-1|:  1.840E+001 *  1.468E+003   = 2.701E+004  Log(1-CN):  4.4315
+   CN : max/min ev:  1.133E+001 /  1.036E-003   = 1.093E+004  Log(2-CN):  4.0386
+
+ Number of electrons:                                                         16
+"""
+
+	def testExpOutputForNoDiagCase(self):
+		expEndIdx = 9
+		expObj = types.SimpleNamespace( estimate=types.SimpleNamespace(oneNorm=8.645E+004) )
+		actDict, actEndIdx = tCode._parseOverlapCondSection(self.fileAsListA, self.startIdxA)
+		actObj = actDict["overlap_condition_number"]
+		self.assertEqual(expEndIdx, actEndIdx)
+		self.assertAlmostEqual(expObj.estimate.oneNorm, actObj.estimate.oneNorm)
+
+	def testExpOutputForDiagCase(self):
+		expEndIdx = 12
+		expOneNorm, expTwoNorm = 2.701E+004, 1.093E+004
+		actDict, actEndIdx = tCode._parseOverlapCondSection(self.fileAsListB, self.startIdxB)
+		actObj = actDict["overlap_condition_number"]
+		self.assertEqual(expEndIdx, actEndIdx)
+		self.assertAlmostEqual(expOneNorm, actObj.diag.oneNorm)
+		self.assertAlmostEqual(expTwoNorm, actObj.diag.twoNorm)
+
+	@mock.patch("plato_pylib.parseOther.parse_cp2k_files._getFileAsListFromInpFile")
+	def testImportedClsObjParses(self, mockedReader):
+		mockedReader.side_effect = lambda *args: self._loadSectionNoDiag().split("\n")
+		expOneNorm = 8.645E+004
+		actObj = tCode.parseCpout( mock.Mock() )["overlap_condition_number"]
+		self.assertAlmostEqual( expOneNorm, actObj.estimate.oneNorm )
 
 
 class TestParseCP2kGeomOutputXyzFiles(unittest.TestCase):
