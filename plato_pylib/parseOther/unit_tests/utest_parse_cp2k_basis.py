@@ -328,6 +328,44 @@ class TestGetCP2KBasisFromGauPolyObjs(unittest.TestCase):
 		actOutput = tCode.getCP2KBasisFromPlatoOrbitalGauPolyBasisExpansion(testOrbSet, [0,0,0], self.eleName, basisNames=self.basisNames, shareExp=True)
 		self.assertEqual(expOutput, actOutput)
 
+
+
+class TestWriteBasisToOutputFile(unittest.TestCase):
+
+	def setUp(self):
+		self.createTestObjs()
+
+	@mock.patch("plato_pylib.parseOther.parse_cp2k_basis._readInpFileIntoIter")
+	def createTestObjs(self, mockedReadIntoList):
+		mockedReadIntoList.side_effect = lambda *args: _createTestFileAsListA()
+		self.basisSetsA = tCode.parseCP2KBasisFile(None) #Parses output from _createTestFileAsListA in effect
+
+	@mock.patch("plato_pylib.parseOther.parse_cp2k_basis._readInpFileIntoIter")
+	def testOutputConsistentWithFileAsListA(self, mockedReadIntoList):
+		expParsedBasisFileObj = self.basisSetsA
+		actFileAsList = tCode._getFileAsListFromParsedBasisFile(expParsedBasisFileObj)
+		mockedReadIntoList.side_effect = lambda *args: actFileAsList
+		actParsedBasisFileObj = tCode.parseCP2KBasisFile(None)
+		self.assertEqual(expParsedBasisFileObj,actParsedBasisFileObj)
+
+	def testGetExponentSetWithLInCorrectOrder(self):
+		expA, coeffsA, coeffsB, lA, lB, nValAll = [1], [2], [3], 1, 0, 1
+		inpExponentSet = tCode.ExponentSetCP2K(expA, [coeffsA, coeffsB], [lA,lB], nValAll)
+		expExponentSet = tCode.ExponentSetCP2K(expA, [coeffsB, coeffsA], [lB,lA], nValAll)
+		self.assertNotEqual(expExponentSet, inpExponentSet)
+		actExponentSet = tCode._getExponentSetWithAngMomValsInCorrectOrder(inpExponentSet)
+		self.assertEqual(expExponentSet, actExponentSet)
+
+	@mock.patch("plato_pylib.parseOther.parse_cp2k_basis._getFileAsListFromParsedBasisFile")
+	@mock.patch("plato_pylib.parseOther.parse_cp2k_basis._writeFileAsListToPath")
+	def testExpectedFunctionsCalledForWriter(self, mockedWriteToPath, mockedGetFileAsList):
+		expFileAsList, expPath, parsedBasisFile = mock.Mock(), mock.Mock(), mock.Mock()
+		mockedGetFileAsList.side_effect = lambda *args: expFileAsList
+		tCode.writeBasisFileFromParsedBasisFileObj(expPath, parsedBasisFile)
+		mockedGetFileAsList.assert_called_with(parsedBasisFile)
+		mockedWriteToPath.assert_called_with(expPath,expFileAsList)
+
+
 #Below is data for a fake file with 2 Mg basis sets
 def _createExpectedBasisSetA():
 	#Basic info

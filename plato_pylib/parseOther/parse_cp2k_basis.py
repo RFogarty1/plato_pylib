@@ -242,6 +242,96 @@ class ExponentSetCP2K():
 		return True
 
 
+def writeBasisFileFromParsedBasisFileObj(filePath, parsedBasisFile):
+	""" Writes a file with all basis sets in parsedBasisFile object
+	
+	Args:
+		filePath: (str) Path to the file you want to write to
+		parsedBasisFile: (ParsedBasisFileCP2K) Contains information on all the basis sets to write to file
+ 
+	"""
+	fileAsList = _getFileAsListFromParsedBasisFile(parsedBasisFile)
+	_writeFileAsListToPath(filePath, fileAsList)
+
+def _writeFileAsListToPath(filePath, fileAsList):
+	with open(filePath,"wt") as f:
+		f.write("\n".join(fileAsList))
+
+def _getFileAsListFromParsedBasisFile(parsedBasisFile):
+	""" Gets a list of strings, 1 per line, representing the output file for the basis sets in input argument 
+	
+	Args:
+		parsedBasisFile: (ParsedBasisFileCP2K object) contains all info from a CP2K basis file
+			 
+	Returns
+		 fileAsList: (iter of strs) Each element is 1 line of the output file in the format used in CP2K
+ 
+	"""
+	basisSetsAsLists = list()
+	for x in parsedBasisFile.basisSets:
+		basisSetsAsLists.extend( _getFileAsListForCP2KBasis(x) )
+		basisSetsAsLists.append('')
+
+	return basisSetsAsLists
+
+def _getFileAsListForCP2KBasis(inpCP2KBasis):
+	""" Gets the string (used in CP2K file) for a single CP2K basis set (in the format of a list, see below)
+	
+	Args:
+		inpCP2KBasis: (BasisSetCP2K object)
+			 
+	Returns
+		 outStr: (iter of strs) String used to represent this basis set in a CP2K file, each element is one line
+ 
+	"""
+	basisAsList = list()
+	firstLine = inpCP2KBasis.element + " " + " ".join([x for x in inpCP2KBasis.basisNames])
+	basisAsList.append(firstLine)
+	basisAsList.append( " {}".format(len(inpCP2KBasis.exponentSets)) )
+
+	for x in inpCP2KBasis.exponentSets:
+		basisAsList.extend( _getFileAsListForExponentSet(x) )
+
+
+	return basisAsList
+
+def _getFileAsListForExponentSet(inpExponentSet):
+	expSet = _getExponentSetWithAngMomValsInCorrectOrder(inpExponentSet)
+	outList = list()
+
+	#Figure out the first line
+	nVal, minL, maxL, numbExp = inpExponentSet.nVal, min(inpExponentSet.lVals), max(inpExponentSet.lVals), len(inpExponentSet.exponents)
+
+	numberL = list()
+	for currL in range(minL,maxL+1):
+		currNumbL = len([x for x in inpExponentSet.lVals if x==currL])
+		numberL.append(currNumbL)
+
+	firstLine = " ".join( [str(x) for x in [nVal, minL, maxL, numbExp] + numberL] )
+	outList.append(firstLine)
+
+	lineFmt = "\t" + " ".join(["{:.8f}" for x in range(len(inpExponentSet.coeffs[0])+1) ])
+	for idx,exp in enumerate(inpExponentSet.exponents):
+		currCoeffs = [x for x in inpExponentSet.coeffs[idx]]
+		outLine = lineFmt.format( *([exp] + currCoeffs) )
+		outList.append(outLine)
+
+	return outList
+
+
+def _getExponentSetWithAngMomValsInCorrectOrder(exponentSet):
+	uniqueLVals = sorted( list(set([x for x in exponentSet.lVals])) )
+	outCoeffs, outLVals = list(), list()
+	for uniqueL in uniqueLVals:
+		for l,coeffs in zip(exponentSet.lVals, exponentSet.coeffs):
+			if l==uniqueL:
+				outLVals.append(l)
+				outCoeffs.append(coeffs)	
+
+	outExponents = ExponentSetCP2K(exponentSet.exponents, outCoeffs, outLVals, exponentSet.nVal)
+
+	return outExponents
+
 def getCP2KBasisFromPlatoOrbitalGauPolyBasisExpansion(gauPolyBasisObjs, angMomVals, eleName, basisNames=None, shareExp=True):
 	""" Gets a BasisSetCP2K object, with coefficients normalised, from an iter of GauPolyBasis objects in plato format
 	
@@ -254,8 +344,6 @@ def getCP2KBasisFromPlatoOrbitalGauPolyBasisExpansion(gauPolyBasisObjs, angMomVa
 
 	Returns
 		 outBasis: (BasisSetCP2K Object) Convenient representation of a basis set for CP2K; this is the object that would be parsed from a CP2K basis file
- 
-	Raises:
 		 
 	"""
 	if basisNames is None:
