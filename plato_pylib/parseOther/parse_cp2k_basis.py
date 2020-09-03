@@ -1,6 +1,7 @@
 
+import itertools as it
 import re
-
+from ..plato import parse_gau_files as parseGau
 
 def parseCP2KBasisFile(inpPath):
 	fileAsList = _readInpFileIntoIter(inpPath)
@@ -240,4 +241,98 @@ class ExponentSetCP2K():
 
 		return True
 
+
+def getCP2KBasisFromPlatoOrbitalGauPolyBasisExpansion(gauPolyBasisObjs, angMomVals, eleName, basisNames=None, shareExp=True):
+	""" Gets a BasisSetCP2K object, with coefficients normalised, from an iter of GauPolyBasis objects in plato format
+	
+	Args:
+		gauPolyBasisObjs: (iter plato_pylib GauPolyBasis object) Each element is the Plato representation of a basis function
+		angMomVals: (iter of int) Angular momentum values for each orbital
+		eleName: (str) Label for the element used in this basis set
+		basisNames: (iter of str) Names used to specify this basis set in the CP2K input file (more than one allowed)
+		shareExp: (Bool, Optional) If True, will try to exploit shared exponents when generating the basis set
+
+	Returns
+		 outBasis: (BasisSetCP2K Object) Convenient representation of a basis set for CP2K; this is the object that would be parsed from a CP2K basis file
+ 
+	Raises:
+		 
+	"""
+	if basisNames is None:
+		basisNames = ["basis_set_a"]
+
+	splitExponentSets = [getCP2KExponentSetFromGauPolyBasis(gaus, angMom) for gaus,angMom in it.zip_longest(gauPolyBasisObjs, angMomVals)]
+
+	if shareExp:
+		outExponentSets = _getExponentSetsWithSharedExponentPartsMerged(splitExponentSets)
+	else:
+		outExponentSets = splitExponentSets
+	
+	outObj = BasisSetCP2K(eleName, basisNames, outExponentSets)
+	return outObj
+
+
+def _getExponentSetsWithSharedExponentPartsMerged(exponentSets, expTol=1e-4):
+	""" Takes an iter of ExponentSetCP2K objects and returns iter (shorter or same length) where any objects with shared exponents are merged
+	
+	Args:
+		exponentSets: (iter of ExponentSetCP2K objects) Effectively contain (at least) a single basis function each
+			 
+	Returns
+		outExponentSets: (iter of ExponentSetCP2K objects) Same as input except each should now have a unique set of exponents (shared exponents being merged into the same object)
+ 
+	"""
+	
+	mergedIndices = list()
+	newOutput = list()
+	for idxA, expSet in enumerate(exponentSets):
+		if idxA in mergedIndices:
+			pass
+		elif idxA-1==(len(exponentSets)): #Only need to append if we havnt already merged
+			newOutput.append( exponentSets[idxA] )
+		else:
+			expToMatch = expSet.exponents
+			for idxB in range(idxA+1, len(exponentSets)):
+				currExpSet = exponentSets[idxB]
+				if len(expToMatch) == len(currExpSet.exponents):
+					diffs = [abs(x-y) for x,y in zip(expToMatch, currExpSet.exponents)]
+					if all([x < expTol for x in diffs]):
+						_appendExponentSetBToA( exponentSets[idxA], currExpSet) 
+						mergedIndices.append(idxB)
+			newOutput.append(exponentSets[idxA])
+
+	return newOutput
+
+
+def _appendExponentSetBToA( expSetA, expSetB ):
+	expSetA.coeffs.extend( expSetB.coeffs )
+	expSetA.lVals.extend( expSetB.lVals )
+
+
+def getCP2KExponentSetFromGauPolyBasis(gauPolyBasis, angMom, nVal=1):
+	""" Returns ExponentSetCP2K object, with normalisation applied from gauPolyBasis. Meant as part of transforming basis sets from plato to cp2k format
+	
+	Args:
+		gauPolyBasis: (plato_pylib GauPolyBasis object) Plato representation of a basis set
+		angMom: (integer) 0,1,2 for s,p,d; Needed to carry out the normalisation
+			 
+	Returns
+		outExponentSet: (ExponentSetCP2K Object) Representation of this basis function in a useful format for CP2K. Note this includes the normalisation of coefficients
+ 
+	Raises:
+		 AssertionError: If gauPolyBasis has more than r^0 terms in it
+	"""
+	assert gauPolyBasis.nPoly==0, "nPoly=0 required, but nPoly={} found".format(gauPolyBasis.nPoly)
+	exponents = [x for x in gauPolyBasis.exponents]
+	normFactors = [1/calcNormConstantForCP2KOnePrimitive(x,angMom) for x in exponents]
+	coeffs = [x*normFactor for x,normFactor in it.zip_longest(gauPolyBasis.r0Coeffs,normFactors)]
+	outObj = ExponentSetCP2K(exponents, [coeffs], [angMom], nVal)
+	return outObj
+
+#Need to divide by this when going Plato->CP2K
+def calcNormConstantForCP2KOnePrimitive(exponent:float, angMom:int):
+	expZet = 0.25 * ((2*angMom)+3)
+	preFac = (2**angMom) * ((2/math.pi)**0.75) 
+	normFactor = preFac*(exponent**expZet)
+	return normFactor
 

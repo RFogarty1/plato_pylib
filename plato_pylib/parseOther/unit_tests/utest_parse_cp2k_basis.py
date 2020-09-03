@@ -4,8 +4,8 @@ import itertools as it
 import unittest
 import unittest.mock as mock
 
+import plato_pylib.plato.parse_gau_files as parseGau
 import plato_pylib.parseOther.parse_cp2k_basis as tCode
-
 
 
 class TestSplitAllBasisSetsUp(unittest.TestCase):
@@ -229,6 +229,104 @@ class TestParseCP2KBasisSet(unittest.TestCase):
 		mockedFileReader.assert_called_once_with(self.expInpPath)
 		self.assertEqual(self.expObjA,actObj)
 
+
+class TestGetCP2KExponentSetFromGauPolyBas(unittest.TestCase):
+
+	def setUp(self):
+		self.expA = [5,6]
+		self.coeffA = [1,2]
+		self.nValA = 1
+		self.angMomA = 0
+		self.createTestObjs()
+
+	def createTestObjs(self):
+		self.testBasisTwoPoly = parseGau.GauPolyBasis([1], [[1],[2]])
+		self.testBasisA = parseGau.GauPolyBasis( self.expA, [self.coeffA] )
+
+	def testRaisesIfMultiplePoly(self):
+		with self.assertRaises(AssertionError):
+			tCode.getCP2KExponentSetFromGauPolyBasis(self.testBasisTwoPoly, self.angMomA)
+
+	@mock.patch("plato_pylib.parseOther.parse_cp2k_basis.calcNormConstantForCP2KOnePrimitive")
+	def testExpectedOutputA_noNormalisation(self, mockedNormFunct):
+		mockedNormFunct.side_effect = lambda *args:1
+		expOutput = tCode.ExponentSetCP2K(self.expA, [self.coeffA], [self.angMomA], self.nValA)
+		actOutput = tCode.getCP2KExponentSetFromGauPolyBasis(self.testBasisA, self.angMomA, nVal=self.nValA)
+		self.assertEqual(expOutput, actOutput)
+
+	@mock.patch("plato_pylib.parseOther.parse_cp2k_basis.calcNormConstantForCP2KOnePrimitive")
+	def testExpectedOutput_withConstantNormalisation(self, mockedNormFunct):
+		mockedNormFunct.side_effect = lambda *args:0.5
+		expCoeffs = [x*2 for x in self.coeffA]
+		expOutput = tCode.ExponentSetCP2K(self.expA, [expCoeffs], [self.angMomA], self.nValA)
+		actOutput = tCode.getCP2KExponentSetFromGauPolyBasis(self.testBasisA, self.angMomA, nVal=self.nValA)
+		self.assertEqual(expOutput, actOutput)
+
+
+class TestGetCP2KBasisFromGauPolyObjs(unittest.TestCase):
+
+	def setUp(self):
+		self.basisNames = ["basisA"]
+		self.exponentsA =  [5,6]
+		self.exponentsB = [5,7]
+		self.coeffsA = [1,2]
+		self.coeffsB = [3,4]
+		self.angMomsA = [0,1]
+		self.angMomsB = [0,1,2]
+		self.eleName = "Mg"
+		self.nValAll = 1
+		self.createTestObjs()
+
+	def createTestObjs(self):
+		self.testObjA = parseGau.GauPolyBasis( self.exponentsA, [self.coeffsA] )
+		self.testObjB = parseGau.GauPolyBasis( self.exponentsA, [self.coeffsB] )
+		self.testObjC = parseGau.GauPolyBasis( self.exponentsB, [self.coeffsA] )
+		self.testOrbsSetA = [self.testObjA, self.testObjB]
+		self.testOrbsSetB = [self.testObjA, self.testObjB, self.testObjC]
+
+	def _getIndividualExpSetA(self):
+		return tCode.ExponentSetCP2K(self.exponentsA, [self.coeffsA], [self.angMomsA[0]], self.nValAll)
+
+	def _getIndividualExpSetB(self):
+		return tCode.ExponentSetCP2K(self.exponentsA, [self.coeffsB], [self.angMomsA[1]], self.nValAll)
+
+	def _getIndividualExpSetC(self):
+		return tCode.ExponentSetCP2K(self.exponentsB, [self.coeffsA], [self.angMomsB[2]], self.nValAll)
+
+	@mock.patch("plato_pylib.parseOther.parse_cp2k_basis.calcNormConstantForCP2KOnePrimitive")
+	def testExpectedWithoutSharedExps(self, mockedNormFunct):
+		mockedNormFunct.side_effect = lambda *args: 1
+		expExpSetA, expExpSetB = self._getIndividualExpSetA(), self._getIndividualExpSetB()
+		expOutput = tCode.BasisSetCP2K(self.eleName, self.basisNames, [expExpSetA, expExpSetB])
+		actOutput = tCode.getCP2KBasisFromPlatoOrbitalGauPolyBasisExpansion(self.testOrbsSetA, self.angMomsA, self.eleName, basisNames=self.basisNames, shareExp=False)
+		self.assertEqual(expOutput, actOutput)
+
+	@mock.patch("plato_pylib.parseOther.parse_cp2k_basis.calcNormConstantForCP2KOnePrimitive")
+	def testExpectedWithSharedExps(self, mockedNormFunct):
+		mockedNormFunct.side_effect = lambda *args: 1
+		expSetA = tCode.ExponentSetCP2K(self.exponentsA, [self.coeffsA, self.coeffsB], self.angMomsA, self.nValAll)
+		expSetB = self._getIndividualExpSetC()
+		expOutput = tCode.BasisSetCP2K(self.eleName, self.basisNames, [expSetA, expSetB])
+		actOutput = tCode.getCP2KBasisFromPlatoOrbitalGauPolyBasisExpansion(self.testOrbsSetB, self.angMomsB, self.eleName, basisNames=self.basisNames, shareExp=True)
+		self.assertEqual(expOutput, actOutput)
+
+	@mock.patch("plato_pylib.parseOther.parse_cp2k_basis.calcNormConstantForCP2KOnePrimitive")
+	def testExpectedWithSharedExps_reversedOrder(self, mockedNormFunct):
+		mockedNormFunct.side_effect = lambda *args: 1
+		expSetA = tCode.ExponentSetCP2K(self.exponentsA, [x for x in reversed([self.coeffsA, self.coeffsB])], [x for x in reversed(self.angMomsA)], self.nValAll)
+		expSetB = self._getIndividualExpSetC()
+		expOutput = tCode.BasisSetCP2K(self.eleName, self.basisNames, [expSetB, expSetA])
+		actOutput = tCode.getCP2KBasisFromPlatoOrbitalGauPolyBasisExpansion( [x for x in reversed(self.testOrbsSetB)], [x for x in reversed(self.angMomsB)], self.eleName, basisNames=self.basisNames, shareExp=True)
+		self.assertEqual(expOutput,actOutput)
+
+	@mock.patch("plato_pylib.parseOther.parse_cp2k_basis.calcNormConstantForCP2KOnePrimitive")
+	def testExpectedWithSharedExps_allShared(self, mockedNormFunct):
+		mockedNormFunct.side_effect = lambda *args: 1
+		expSetA = tCode.ExponentSetCP2K(self.exponentsA, [self.coeffsA, self.coeffsA, self.coeffsA], [0,0,0], self.nValAll) #Merging all
+		expOutput = tCode.BasisSetCP2K(self.eleName, self.basisNames, [expSetA])
+		testOrbSet = [self.testObjA, self.testObjA, self.testObjA]
+		actOutput = tCode.getCP2KBasisFromPlatoOrbitalGauPolyBasisExpansion(testOrbSet, [0,0,0], self.eleName, basisNames=self.basisNames, shareExp=True)
+		self.assertEqual(expOutput, actOutput)
 
 #Below is data for a fake file with 2 Mg basis sets
 def _createExpectedBasisSetA():
