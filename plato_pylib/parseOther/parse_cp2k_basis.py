@@ -1,4 +1,5 @@
 
+import math
 import itertools as it
 import re
 from ..plato import parse_gau_files as parseGau
@@ -99,7 +100,14 @@ def _parseNextBasisExponentSet(fileAsList):
 		exponents.append( float(line.strip().split()[0]) )
 		coeffs.append( [float(x) for x in line.strip().split()[1:]] )
 
-	return ExponentSetCP2K(exponents,coeffs,lVals,nVal), nLines
+	#Convert coeffs such that its one set per basis function rather than one per exponent
+	outCoeffs = list()
+	numbBasisFuncts = len(coeffs[0])
+	for idx in range(numbBasisFuncts):
+		currCoeffs = [x[idx] for x in coeffs]
+		outCoeffs.append(currCoeffs)
+
+	return ExponentSetCP2K(exponents,outCoeffs,lVals,nVal), nLines
 
 
 class ParsedBasisFileCP2K():
@@ -205,7 +213,10 @@ class ExponentSetCP2K():
 		self.exponents = exponents
 		self.coeffs = coeffs
 		self.lVals = lVals
+		self._checkAllCoeffListsSameLengthAsExponents()
 
+	def _checkAllCoeffListsSameLengthAsExponents(self):
+		assert all([len(x)==len(self.exponents) for x in self.coeffs]), "All coeff lengths should be {} (the number of exponents)".format(len(self.exponents))
 
 	def __eq__(self,other):
 		tolerance = min(self._eqTol,other._eqTol)
@@ -310,9 +321,9 @@ def _getFileAsListForExponentSet(inpExponentSet):
 	firstLine = " ".join( [str(x) for x in [nVal, minL, maxL, numbExp] + numberL] )
 	outList.append(firstLine)
 
-	lineFmt = "\t" + " ".join(["{:.8f}" for x in range(len(inpExponentSet.coeffs[0])+1) ])
+	lineFmt = "\t" + " ".join(["{:.8f}" for x in range(len(inpExponentSet.coeffs)+1) ])
 	for idx,exp in enumerate(inpExponentSet.exponents):
-		currCoeffs = [x for x in inpExponentSet.coeffs[idx]]
+		currCoeffs = [x[idx] for x in inpExponentSet.coeffs]
 		outLine = lineFmt.format( *([exp] + currCoeffs) )
 		outList.append(outLine)
 
@@ -332,7 +343,7 @@ def _getExponentSetWithAngMomValsInCorrectOrder(exponentSet):
 
 	return outExponents
 
-def getCP2KBasisFromPlatoOrbitalGauPolyBasisExpansion(gauPolyBasisObjs, angMomVals, eleName, basisNames=None, shareExp=True):
+def getCP2KBasisFromPlatoOrbitalGauPolyBasisExpansion(gauPolyBasisObjs, angMomVals, eleName, basisNames=None, shareExp=True, nVals=None):
 	""" Gets a BasisSetCP2K object, with coefficients normalised, from an iter of GauPolyBasis objects in plato format
 	
 	Args:
@@ -349,7 +360,10 @@ def getCP2KBasisFromPlatoOrbitalGauPolyBasisExpansion(gauPolyBasisObjs, angMomVa
 	if basisNames is None:
 		basisNames = ["basis_set_a"]
 
-	splitExponentSets = [getCP2KExponentSetFromGauPolyBasis(gaus, angMom) for gaus,angMom in it.zip_longest(gauPolyBasisObjs, angMomVals)]
+	if nVals is None:
+		nVals = [1 for x in gauPolyBasisObjs]
+
+	splitExponentSets = [getCP2KExponentSetFromGauPolyBasis(gaus, angMom, nVal) for gaus,angMom,nVal in it.zip_longest(gauPolyBasisObjs, angMomVals, nVals)]
 
 	if shareExp:
 		outExponentSets = _getExponentSetsWithSharedExponentPartsMerged(splitExponentSets)
@@ -391,9 +405,8 @@ def _getExponentSetsWithSharedExponentPartsMerged(exponentSets, expTol=1e-4):
 
 	return newOutput
 
-
 def _appendExponentSetBToA( expSetA, expSetB ):
-	expSetA.coeffs.extend( expSetB.coeffs )
+	expSetA.coeffs.extend(expSetB.coeffs)
 	expSetA.lVals.extend( expSetB.lVals )
 
 
@@ -414,6 +427,8 @@ def getCP2KExponentSetFromGauPolyBasis(gauPolyBasis, angMom, nVal=1):
 	exponents = [x for x in gauPolyBasis.exponents]
 	normFactors = [1/calcNormConstantForCP2KOnePrimitive(x,angMom) for x in exponents]
 	coeffs = [x*normFactor for x,normFactor in it.zip_longest(gauPolyBasis.r0Coeffs,normFactors)]
+
+#	outCoeffs = [[x] for x in coeffs]
 	outObj = ExponentSetCP2K(exponents, [coeffs], [angMom], nVal)
 	return outObj
 
@@ -423,4 +438,50 @@ def calcNormConstantForCP2KOnePrimitive(exponent:float, angMom:int):
 	preFac = (2**angMom) * ((2/math.pi)**0.75) 
 	normFactor = preFac*(exponent**expZet)
 	return normFactor
+
+
+def getGauPolyBasisFunctionsFromCP2KBasisSet(cp2kBasisSet):
+	""" Gets a list of GauPolyBasis format objects from a CP2K Basis set (includes reversing the normalisation needed for CP2K basis sets
+	
+	Args:
+		cp2kBasisSet: (BasisSetCP2K Object) Represents a full basis set in CP2K format
+			 
+	Returns
+		gauPolyExpansions: (iter of GauPolyBasis objects) Each represents ONE basis function in the standard format for plato
+ 
+	"""
+	outObjs = list()
+	for x in cp2kBasisSet.exponentSets:
+		currObjs = getGauPolyBasisFunctionsFromCP2KExponentSet(x)
+		outObjs.extend(currObjs)
+	return outObjs
+
+def getGauPolyBasisFunctionsFromCP2KExponentSet(cp2kExponentSet):
+	""" Gets basis set in the GauPolyBasis format from CP2K format (including reversing the normalisation needed for a CP2K basis
+	
+	Args:
+		cp2kExponentSet: (ExponentSetCP2K object) Representation of basis functions sharing exponents in CP2K
+			 
+	Returns
+		gauPolyExpansions: (iter of GauPolyBasis objects) Each represents ONE basis function in the standard format for plato
+ 
+	"""
+	exponents = cp2kExponentSet.exponents
+
+	outObjs = list()
+
+#	for idx, angMom in enumerate(cp2kExponentSet.lVals):
+#		coeffs = [x[idx] for x in cp2kExponentSet.coeffs] #For the CURRENT orbital
+#		currNormFactors = [calcNormConstantForCP2KOnePrimitive(exp,angMom) for exp in exponents]
+#		currCoeffs = [c*normFactor for c,normFactor in it.zip_longest(coeffs,currNormFactors)]
+#		currObj = parseGau.GauPolyBasis(exponents, [currCoeffs], label=angMom)
+#		outObjs.append(currObj)
+#	return outObjs
+
+	for coeffs,angMom in it.zip_longest(cp2kExponentSet.coeffs, cp2kExponentSet.lVals):
+		currNormFactors = [calcNormConstantForCP2KOnePrimitive(exp,angMom) for exp in exponents]
+		currCoeffs = [c*normFactor for c,normFactor in it.zip_longest(coeffs,currNormFactors)]
+		currObj = parseGau.GauPolyBasis(exponents, [currCoeffs], label=angMom)
+		outObjs.append(currObj)
+	return outObjs
 

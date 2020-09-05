@@ -28,9 +28,9 @@ class TestParseCP2kSingleBasisSet(unittest.TestCase):
 		self.basisListA = _createExpBasisAsListA()
 		self.expA = [0.18835110]
 		self.expB = [0.25684646,0.41223507]
-		self.coeffsA = [ [8.44145278, 4.38527172, 1.46989022] ]
-		self.coeffsB =  [ [6.29193240, 10.71646800, 4.67136283],
-		                  [-33.73264167, -80.11784971, -35.36689601], ]
+		self.coeffsA = [ [8.44145278], [4.38527172], [1.46989022] ]
+		self.coeffsB = [ [6.29193240,-33.73264167], [10.71646800,-80.11784971],
+		                 [4.67136283,-35.36689601] ]
 		self.lValsA = [0,1,2]
 		self.lValsB = [0,1,2]
 		self.nValA = 3
@@ -95,7 +95,8 @@ class TestExponentSetClass(unittest.TestCase):
 		objB = self.testObjA
 		self.assertNotEqual(objA,objB)
 
-	def testUnequalObjsCompareUnequal_diffLengthExpLists(self):
+	@mock.patch("plato_pylib.parseOther.parse_cp2k_basis.ExponentSetCP2K._checkAllCoeffListsSameLengthAsExponents")
+	def testUnequalObjsCompareUnequal_diffLengthExpLists(self, mockedCoeffLenChecker):
 		objA = copy.deepcopy(self.testObjA)
 		self.exponentsA.append( 4 )
 		self.createTestObjs()
@@ -328,7 +329,40 @@ class TestGetCP2KBasisFromGauPolyObjs(unittest.TestCase):
 		actOutput = tCode.getCP2KBasisFromPlatoOrbitalGauPolyBasisExpansion(testOrbSet, [0,0,0], self.eleName, basisNames=self.basisNames, shareExp=True)
 		self.assertEqual(expOutput, actOutput)
 
+class TestGetGauPolyBasFromCP2KBasis(unittest.TestCase):
 
+	def setUp(self):
+		self.basisNames = ["basisA"]
+		self.exponentsA =  [5,6]
+		self.exponentsB = [5,7]
+		self.coeffsA = [1,2]
+		self.coeffsB = [3,4]
+		self.angMomsA = [0,1]
+		self.angMomsB = [0,1,2]
+		self.eleName = "Mg"
+		self.nValAll = 1
+		self.createTestObjs()
+		self.createTestObjs()
+
+	def createTestObjs(self):
+		angMomTemp = 0
+		self.gauObjA = parseGau.GauPolyBasis( self.exponentsA, [self.coeffsA] )
+		self.gauObjB = parseGau.GauPolyBasis( self.exponentsB, [self.coeffsB] )
+		self.cp2kExpSetA = tCode.getCP2KExponentSetFromGauPolyBasis(self.gauObjA, angMomTemp)
+		self.cp2kExpSetB = tCode.getCP2KExponentSetFromGauPolyBasis(self.gauObjB, angMomTemp)
+
+		expSetListA = [self.cp2kExpSetA, self.cp2kExpSetB]
+		self.cp2kBasisSetA = tCode.BasisSetCP2K(self.eleName, self.basisNames, expSetListA)
+
+	def testGauToCP2kToGauGivesOrigResultBackOneBasisFunction(self):
+		expObj = [self.gauObjA] #Returns iter, since 1 exponent set could be multiple plato orbitals
+		actObj = tCode.getGauPolyBasisFunctionsFromCP2KExponentSet(self.cp2kExpSetA)
+		self.assertEqual(expObj, actObj)
+
+	def testGauToCP2KToGauGivesOrigResultsBack_twoExponentsBasisSet(self):
+		expObjs = [self.gauObjA, self.gauObjB]
+		actObjs = tCode.getGauPolyBasisFunctionsFromCP2KBasisSet(self.cp2kBasisSetA)
+		self.assertEqual(expObjs,actObjs)
 
 class TestWriteBasisToOutputFile(unittest.TestCase):
 
@@ -374,13 +408,14 @@ def _createExpectedBasisSetA():
 
 	#The exponent sets
 	exponentsA = [0.18835110]
-	coeffsA = [ [8.44145278, 4.38527172, 1.46989022] ]
+	coeffsA = [ [8.44145278], [4.38527172], [1.46989022] ]
 	lValsA = [0,1,2]
 	nValA = 3
 	exponentSetA = tCode.ExponentSetCP2K(exponentsA, coeffsA, lValsA, nValA)
 
 	exponentsB = [0.25684646, 0.41223507]
-	coeffsB = [ [6.29193240, 10.71646800, 4.67136283], [-33.73264167, -80.11784971, -35.36689601] ]
+	coeffsB = [ [6.29193240,-33.73264167], [10.71646800,-80.11784971], [4.67136283,-35.36689601] ]
+#	coeffsB = [ [6.29193240, 10.71646800, 4.67136283], [-33.73264167, -80.11784971, -35.36689601] ]
 	lValsB = [0,1,2]
 	nValB = 3
 	exponentSetB = tCode.ExponentSetCP2K(exponentsB, coeffsB, lValsB, nValB)
@@ -395,13 +430,13 @@ def _createExpectedBasisSetB():
 
 	#The exponent sets
 	exponentsA = [0.16410043, 0.19845384]
-	coeffsA = [ [6.42183555, 3.61896728], [-7.80636538, -3.70059388] ]
+	coeffsA = [ [6.42183555,-7.80636538], [3.61896728,-3.70059388] ]
 	lValsA = [0,1]
 	nValA = 3
 	exponentSetA = tCode.ExponentSetCP2K(exponentsA, coeffsA, lValsA, nValA)
 
 	exponentsB = [0.20037409, 0.38555230]
-	coeffsB = [ [3.47476137, 5.55019829], [-15.08683172, -59.20857370] ]
+	coeffsB = [ [3.47476137, -15.08683172], [5.55019829, -59.20857370] ]
 	lValsB = [0,1]
 	nValB = 3
 	exponentSetB = tCode.ExponentSetCP2K(exponentsB, coeffsB, lValsB, nValB)
