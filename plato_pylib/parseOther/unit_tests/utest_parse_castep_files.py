@@ -303,6 +303,27 @@ class testParseCastepParamFile(unittest.TestCase):
 			self.assertEqual( self.partialDictFileA[key], tokenizedFile[key] )
 
 
+class testGetCoordsFromCellFile(unittest.TestCase):
+
+	def setUp(self):
+		self.coordBlockA = "Mg 0.0    0.0    0.0\nMg 0.33333333    0.66666667    0.5"
+		self.createTestObjs()
+
+	def createTestObjs(self):
+		self.fractPosTokFile = {"positions_frac":self.coordBlockA}
+		self.cartPosTokFile = {"positions_abs":self.coordBlockA}
+		self.expCoordA = [ [0.0,0.0,0.0,"Mg"], [0.33333333,0.66666667,0.5,"Mg"] ]
+
+	def testFractCoords(self):
+		actCoords = tCode._getFractCoordsFromTokenizedCellFile(self.fractPosTokFile)
+		for exp,act in itertools.zip_longest(self.expCoordA, actCoords):
+			self.assertAlmostEqual(exp,act)
+
+	def testCartCoords(self):
+		actCoords = tCode._getCartCoordsFromTokenizedCellFile(self.cartPosTokFile)
+		for exp,act in itertools.zip_longest(self.expCoordA, actCoords):
+			self.assertAlmostEqual(exp,act)
+
 
 def createCastepCellFileA():
 	filePath = os.path.join(os.getcwd(), "cellFileA.cell")

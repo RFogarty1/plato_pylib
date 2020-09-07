@@ -77,29 +77,42 @@ def unitCellObjFromCastepCellFile(cellFilePath:str):
 def _getUnitCellObjFromTokenizedCastepCellFile(tokFile:dict):
 
 	#Step 1 = Get lattice vectors
-	lattVectStr = [x for x in tokFile["lattice_cart"].split("\n")[1:]]
+	lattVectStr = [x for x in tokFile["lattice_cart"].split("\n")]
+	if len(lattVectStr)==4:
+		lattVectStr = lattVectStr[1:] #this should only happen if units are specified on the first line
 	lattVects = list()
 	for vectStr in lattVectStr:
 		currVect = [float(x) for x in vectStr.replace("\t"," ").split()]
 		lattVects.append( currVect )
 
 	#Step 2 = Get the fractional co-ords
-	fractCoords = _getFractCoordsFromTokenizedCellFile(tokFile)
+	try:
+		fractCoords = _getFractCoordsFromTokenizedCellFile(tokFile)
+		outCell = UCell.UnitCell.fromLattVects(lattVects, fractCoords=fractCoords)
+	except KeyError:
+		cartCoords =_getCartCoordsFromTokenizedCellFile(tokFile)
+		outCell = UCell.UnitCell.fromLattVects(lattVects)
+		outCell.cartCoords = cartCoords
 
-	return UCell.UnitCell.fromLattVects(lattVects,fractCoords=fractCoords)
+	return outCell
 
-
-
+#Return None if not found
 def _getFractCoordsFromTokenizedCellFile(tokFile):
-	fractCoords = list()
 	fractCoordStrList = [x for x in tokFile["positions_frac"].split("\n")]
+	return _getCoordsFromStrList(fractCoordStrList)
 
-	for fractStr in fractCoordStrList:
-		element, x, y, z = fractStr.replace("\t"," ").strip().split()
+def _getCartCoordsFromTokenizedCellFile(tokFile):
+	cartCoordStrList = [x for x in tokFile["positions_abs"].split("\n")]
+	return _getCoordsFromStrList(cartCoordStrList)
+
+def _getCoordsFromStrList(strList):
+	coords = list()
+	for coordStr in strList:
+		element, x, y, z = coordStr.replace("\t"," ").strip().split()
 		currFract = [float(x), float(y), float(z), element]
-		fractCoords.append(currFract)
+		coords.append(currFract)
 
-	return fractCoords
+	return coords
 
 def tokenizeCastepCellFileAndRemoveBlockFromKeys(cellFilePath:str)->"lower case dict":
 	startDict = tokenizeCastepCellFile(cellFilePath)
