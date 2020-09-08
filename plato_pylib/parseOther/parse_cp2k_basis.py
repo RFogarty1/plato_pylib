@@ -311,19 +311,19 @@ def _getFileAsListForExponentSet(inpExponentSet):
 	outList = list()
 
 	#Figure out the first line
-	nVal, minL, maxL, numbExp = inpExponentSet.nVal, min(inpExponentSet.lVals), max(inpExponentSet.lVals), len(inpExponentSet.exponents)
+	nVal, minL, maxL, numbExp = expSet.nVal, min(expSet.lVals), max(expSet.lVals), len(expSet.exponents)
 
 	numberL = list()
 	for currL in range(minL,maxL+1):
-		currNumbL = len([x for x in inpExponentSet.lVals if x==currL])
+		currNumbL = len([x for x in expSet.lVals if x==currL])
 		numberL.append(currNumbL)
 
 	firstLine = " ".join( [str(x) for x in [nVal, minL, maxL, numbExp] + numberL] )
 	outList.append(firstLine)
 
-	lineFmt = "\t" + " ".join(["{:.8f}" for x in range(len(inpExponentSet.coeffs)+1) ])
-	for idx,exp in enumerate(inpExponentSet.exponents):
-		currCoeffs = [x[idx] for x in inpExponentSet.coeffs]
+	lineFmt = "\t" + " ".join(["{:.8f}" for x in range(len(expSet.coeffs)+1) ])
+	for idx,exp in enumerate(expSet.exponents):
+		currCoeffs = [x[idx] for x in expSet.coeffs]
 		outLine = lineFmt.format( *([exp] + currCoeffs) )
 		outList.append(outLine)
 
