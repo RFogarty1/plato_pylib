@@ -474,3 +474,25 @@ def getLattVectorsTransformedToAlignParamCWithZ(lattVectors):
 
 	return output
 
+def foldAtomicPositionsIntoCell(cellObj, tolerance=1e-2):
+	startFractCoords = cellObj.fractCoords
+	if startFractCoords is None:
+		return None
+	outCoords = list()
+
+	for idxA,currFract in enumerate(startFractCoords):
+		for idxB,x in enumerate(currFract[:3]):
+			if (x<-1*tolerance):
+				shiftVal = math.ceil(abs(x))
+				startFractCoords[idxA][idxB] += shiftVal
+			elif (x>1+tolerance):
+				shiftVal = -1* math.floor(x)
+				startFractCoords[idxA][idxB] += shiftVal
+
+	cellObj.fractCoords = startFractCoords
+
+
+
+		
+
+

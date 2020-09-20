@@ -325,6 +325,43 @@ class TestUcellWithLattVectsWithCAlongZ(unittest.TestCase):
 		self.assertEqual(expVects, actVects)
 
 
+class TestFoldInAtomCoords(unittest.TestCase):
+
+	def setUp(self):
+		self.lattParamsA = [1,2,3]
+		self.lattAnglesA = [90,90,90]
+		self.fractCoordsA = [ [0.5,0.5,0.5] ]
+		self.eleListA = [ "Mg" ]
+		self.createTestObjs()
+
+	def createTestObjs(self):
+		kwargDict = {"lattParams":list(self.lattParamsA), "lattAngles": list(self.lattAnglesA),
+		             "fractCoords":list(self.fractCoordsA), "elementList": self.eleListA}
+		self.testCellA = tCode.UnitCell(**kwargDict)
+
+	def testDoesntAlterWhenNotNeeded(self):
+		expCell = copy.deepcopy(self.testCellA)
+		self.createTestObjs()
+		actCell = self.testCellA
+		tCode.foldAtomicPositionsIntoCell(actCell)
+		self.assertEqual(expCell, actCell)
+
+	def testShiftsWhenCoordsAreNegative(self):
+		self.fractCoordsA[0] = [-1*x for x in self.fractCoordsA[0]]
+		self._runStandardTest()
+
+	def testShiftsWhenCoordsMagnitudeGreaterThanTwo(self):
+		self.fractCoordsA[0] = [x+2 for x in self.fractCoordsA[0]]
+		self._runStandardTest()
+
+	def _runStandardTest(self):
+		expCell = copy.deepcopy(self.testCellA)
+		self.createTestObjs()
+		actCell = self.testCellA
+		self.assertNotEqual(expCell, actCell)
+		tCode.foldAtomicPositionsIntoCell(actCell)
+		self.assertEqual(expCell,actCell)
+
 
 if __name__ == '__main__':
 	unittest.main()
