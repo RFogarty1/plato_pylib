@@ -15,20 +15,23 @@ def superCellFromUCell(unitCell, dims):
 
 	return zShifted
 
-def getUnitCellSurroundedByNeighbourCells(unitCell):
+def getUnitCellSurroundedByNeighbourCells(unitCell, alongA=True, alongB=True, alongC=True):
 	""" Gets the unit cell surrouned by images in each direction; meaning a total of 27 cells merged into a supercell. Note that the original cells cartesian co-ordinates will be unchanged; meaning that most atoms will have -ve x/y/z co-ordinates
 	
 	Args:
 		unitCell: plato_pylib UnitCell object
+		alongA (Optional, Bool): Whether to get the images along lattice vector a (default=True)
+		alongB (Optional, Bool): Whether to get the images along lattice vector b (default=True)
+		alongC (Optional, Bool): Whether to get the images along lattice vector c (default=True)
 			 
 	Returns
 		outCell: a DIFFERENT plato_pylib UnitCell object containing the original surrounded by 26 image cells in total
  
 	Raises:
 	"""
-	xCell = _getCellWithImageAddedEachSide(unitCell,0)
-	yCell = _getCellWithImageAddedEachSide(xCell,1)
-	outCell = _getCellWithImageAddedEachSide(yCell,2)
+	xCell = _getCellWithImageAddedEachSide(unitCell,0) if alongA is True else unitCell
+	yCell = _getCellWithImageAddedEachSide(xCell,1) if alongB is True else xCell
+	outCell = _getCellWithImageAddedEachSide(yCell,2) if alongC is True else yCell
 	return outCell
 
 
