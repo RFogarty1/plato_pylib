@@ -9,7 +9,7 @@ from concurrent import futures
 
 import plato_pylib.plato.mod_plato_inp_files as platoInp
 
-def executeRunCommsParralel(allRunComms:list, maxThreads:int, quiet=False, noCommsOk=True):
+def executeRunCommsParralel(allRunComms:list, maxThreads:int, quiet=False, noCommsOk=True, checkCall=True):
 	quietMode = quiet
 
 	jobsLeft = len(allRunComms)
@@ -27,8 +27,13 @@ def executeRunCommsParralel(allRunComms:list, maxThreads:int, quiet=False, noCom
 
 	numbThreads = min(jobsLeft, maxThreads)
 
+	if checkCall:
+		singleComm = _runOneComm
+	else:
+		singleComm = lambda x: subprocess.call(x, shell=True)
+
 	with futures.ThreadPoolExecutor(numbThreads) as executor:
-		for i in executor.map(_runOneComm, allRunComms):
+		for i in executor.map(singleComm, allRunComms):
 			jobsLeft -= 1
 			if quietMode is False:
 				print("{} Jobs remaining".format(jobsLeft))
