@@ -5,6 +5,7 @@ import types
 from plato_pylib.shared.ucell_class import UnitCell
 from plato_pylib.shared.energies_class import EnergyVals 
 from . import parse_xyz_files as parseXyzHelp
+from ..shared import custom_errors as errorHelp
 
 RYD_TO_EV = 13.6056980659
 HART_TO_EV = 2*RYD_TO_EV
@@ -55,6 +56,13 @@ class CpoutFileParser():
 	extraFunctsToParseFromSingleLine = list()
 
 	def getOutDictFromFileAsList(self, fileAsList):
+		try:
+			outDict = self._getOutDictFromFileAsList(fileAsList)
+		except Exception as e:
+			raise errorHelp.PlatoPylibParseFileError("Something went wrong when parsing the current CP2K output file") from e
+		return outDict
+
+	def _getOutDictFromFileAsList(self, fileAsList):
 		outDict = self._getInitCp2kOutDict()
 		lineIdx=0
 
@@ -76,10 +84,16 @@ class CpoutFileParser():
 			elif currLine.find("OPTIMIZATION STEP") != -1:
 				outDict["multiple_geom_present"] = True
 				lineIdx += 1
+			elif currLine.find("PROGRAM ENDED") != -1:
+				outDict["terminate_flag_found"] = True
+				lineIdx += 1
 			elif self._patternInExtraSingleLinePatterns(currLine):
 				lineIdx = self._updateDictBasedOnFindingSingleLinePatterns(fileAsList, lineIdx, outDict)
 			else:
 				lineIdx +=1
+
+		if outDict["terminate_flag_found"] is False:
+			raise ValueError("Termination flag not found in current cp2k output file")
 	
 		return outDict
 
@@ -103,6 +117,7 @@ class CpoutFileParser():
 		outDict = dict()
 		outDict["numbAtoms"] = 0
 		outDict["multiple_geom_present"] = False #Probably actually a useless output
+		outDict["terminate_flag_found"] = False
 		return outDict
 
 def parseCellSectionCpout(fileAsList, lineIdx):

@@ -9,7 +9,7 @@ import unittest.mock as mock
 
 import plato_pylib.shared.ucell_class as uCellHelp
 import plato_pylib.parseOther.parse_cp2k_files as tCode
-
+import plato_pylib.shared.custom_errors as errorHelp
 
 import numpy as np
 
@@ -147,7 +147,7 @@ class TestCP2KOverlapConditionParsing(unittest.TestCase):
 		self.fileAsListB = self.sectionB.split("\n")
 		self.startIdxB = 6
 
-
+	#NOTE: I need to load the CP2K file termination flag (PROGRAM ENDED) to avoid an error from it missing
 	def _loadSectionNoDiag(self):
 		return """
  RS_GRID| Information for grid number                                          4
@@ -162,6 +162,8 @@ class TestCP2KOverlapConditionParsing(unittest.TestCase):
  Number of electrons:                                                         16
  Number of occupied orbitals:                                                  8
  Number of molecular orbitals:                                                16
+
+PROGRAM ENDED
 """
 
 	def _loadSectionWithDiag(self):
@@ -179,6 +181,7 @@ class TestCP2KOverlapConditionParsing(unittest.TestCase):
    CN : max/min ev:  1.133E+001 /  1.036E-003   = 1.093E+004  Log(2-CN):  4.0386
 
  Number of electrons:                                                         16
+
 """
 
 	def testExpOutputForNoDiagCase(self):
@@ -229,8 +232,16 @@ class TestParseCP2kGeomOutputXyzFiles(unittest.TestCase):
 			actCell.cartCoords = actCoords
 			self.assertEqual(expCell,actCell)	
 	
+class TestParseCpoutRaisesParseFileError(unittest.TestCase):
 
+	def setUp(self):
+		self.fakeFileStrA = "Not really\n A CP2K file"
 
+	@mock.patch("plato_pylib.parseOther.parse_cp2k_files._getFileAsListFromInpFile")
+	def testRaisesWhenTerminateFlagMissing(self, mockedReader):
+		mockedReader.side_effect = lambda *args: self.fakeFileStrA
+		with self.assertRaises(errorHelp.PlatoPylibParseFileError):
+			tCode.parseCpout(None)
 
 #File contains mock results of two optimisations; of which only the second are of interest really
 def getGeomOptXyzFileStrA():
