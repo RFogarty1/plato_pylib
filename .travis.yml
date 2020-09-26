@@ -16,6 +16,7 @@ before_install:
   - conda env create -n testenv -f environment.yml
   - source activate testenv
   - pip install ase
+  - pip install pycp2k
   # The next couple lines fix a crash with multiprocessing on Travis and are not specific to using Miniconda.
   #Except they themselves caused a crash recently, hence removed for now since no multiprocessing is done
 #  - sudo rm -rf /dev/shm
