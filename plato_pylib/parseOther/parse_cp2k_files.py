@@ -62,7 +62,10 @@ def _getCoordsFromPyCp2kObj(pyCp2kObj):
 def parseCpout(outFile):
 	fileAsList = _getFileAsListFromInpFile(outFile)
 	parser = _getStandardCpoutParser()
-	outDict = parser.getOutDictFromFileAsList(fileAsList)
+	try:
+		outDict = parser.getOutDictFromFileAsList(fileAsList)
+	except Exception as e:
+	    raise errorHelp.PlatoPylibParseFileError("Something went wrong when parsing the current CP2K output file {}".format(outFile)) from e
 	return outDict
 
 def _getStandardCpoutParser():
