@@ -1,15 +1,63 @@
 #!/usr/bin/python3
 
 import itertools as it
+import re
 import types
 from plato_pylib.shared.ucell_class import UnitCell
 from plato_pylib.shared.energies_class import EnergyVals 
 from . import parse_xyz_files as parseXyzHelp
 from ..shared import custom_errors as errorHelp
 
+import pycp2k
+
 RYD_TO_EV = 13.6056980659
 HART_TO_EV = 2*RYD_TO_EV
 
+
+def parseGeomFromCpInputFile(inpFile):
+	""" Gets a plato_pylib UnitCell object when passed a path to cp2k input file
+	
+	Args:
+		inpFile: (str) Path to cp2k input file
+			 
+	Returns
+		 outCell: (plato_pylib) UnitCell object containing the geometry in the input file
+ 
+	IMPORTANT:
+		Current implementation only works if the unit cell is represented by cell vectors in the input file
+		Also currently no attempt to deal with units; you get whatever units you express the geometry in
+	"""
+	parser = pycp2k.inputparser.CP2KInputParser()
+	inpObj = pycp2k.CP2K()
+	pyCp2kObj = parser.parse(inpObj, inpFile)
+	cellVects = _getCellVectsFromPyCp2kObj(pyCp2kObj)
+	useFractCoords, coords = _getCoordsFromPyCp2kObj(pyCp2kObj)
+	outCell = UnitCell.fromLattVects(cellVects)
+	if useFractCoords:
+		outCell.fractCoords = coords
+	else:
+		outCell.cartCoords = coords
+
+	return outCell
+
+def _getCellVectsFromPyCp2kObj(pyCp2kObj):
+	cellSection = pyCp2kObj.CP2K_INPUT.FORCE_EVAL_list[-1].SUBSYS.CELL
+	rawVects = [getattr(cellSection,x) for x in ["A","B","C"]]
+	outVects = list()
+	for rawVect in rawVects:
+		outVect = [float(x) for x in re.sub( '\[[A-Z,a-z]*\]','',rawVect).strip().split()]
+		outVects.append(outVect)
+	return outVects
+
+def _getCoordsFromPyCp2kObj(pyCp2kObj):
+	coordSection = pyCp2kObj.CP2K_INPUT.FORCE_EVAL_list[-1].SUBSYS.COORD
+	scaled = coordSection.Scaled
+	outCoords = list()
+	for currAtom in coordSection.Default_keyword:
+		currCoord = [float(x) for x in currAtom.strip().split()[1:]]
+		currCoord.append( currAtom.strip().split()[0] )
+		outCoords.append(currCoord)
+	return scaled,outCoords
 
 def parseCpout(outFile):
 	fileAsList = _getFileAsListFromInpFile(outFile)
@@ -35,7 +83,7 @@ def getDecoToAttachSectionParserToCpoutParser(pattern, parseFunction):
 	
 	Args:
 		pattern: (str) The pattern to search for in a single line of a cpout file. Finding the pattern should trigger the parse function
-		parseFunction: Function with interface parsedDict, lineIdx = parseFunction(fileAsList, lineIdx). lineIdx is the index in the file where the initial arg is passed (when inp-arg) and where the section is over (when it appears as outArg). ParsedDict is simplyy a dictionary containing key:val pairs for this section; this is used to update the main dictionary the parser outputs.
+		parseFunction: Function with interface parsedDict, lineIdx = parseFunction(fileAsList, lineIdx). lineIdx is the index in the file where the initial arg is passed (when inp-arg) and where the section is over (when it appears as outArg). ParsedDict is simply a dictionary containing key:val pairs for this section; this is used to update the main dictionary the parser outputs.
  
 	Returns
 		parseSectionDeco: Decorator for attaching this section parser to the overall CpoutFileParser. After calling parseSectionDeco(CpoutFileParser) any parser instances should be apply "parseFunction" upon finding "pattern" in any file its passed. Thus, this is essentially acting as a hook function for the parser behaviour.
