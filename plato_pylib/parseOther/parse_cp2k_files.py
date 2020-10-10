@@ -71,7 +71,9 @@ def parseCpout(outFile):
 def _getStandardCpoutParser():
 	outParser = CpoutFileParser()
 	condNumbDeco = getDecoToAttachSectionParserToCpoutParser("OVERLAP MATRIX CONDITION NUMBER AT GAMMA POINT", _parseOverlapCondSection)
+	bsseDeco = getDecoToAttachSectionParserToCpoutParser("BSSE RESULTS", _parseBSSESection)
 	condNumbDeco(outParser)
+	bsseDeco(outParser)
 	return outParser
 
 def _getFileAsListFromInpFile(inpFile):
@@ -121,7 +123,7 @@ class CpoutFileParser():
 			currLine = fileAsList[lineIdx].strip()
 			if currLine.find("CELL|") != -1:
 				outDict["unitCell"], lineIdx = parseCellSectionCpout(fileAsList,lineIdx)
-			elif currLine.find("Total energy:") != -1:
+			elif currLine.find("Total energy:") != -1 and currLine.find("CP-corrected")==-1:
 				totalE = float( currLine.split()[-1] ) * HART_TO_EV
 				outDict["energy"] = totalE
 				outDict["energies"] = EnergyVals(dftTotalElectronic=totalE)
@@ -276,6 +278,24 @@ def _parseOverlapCondSection(fileAsList, lineIdx):
 
 	return outDict,lineIdx-1
 
+def _parseBSSESection(fileAsList, lineIdx):
+	outDict = dict()
+	outDict["bsse"] = None
+	retOutObj = False
+	outObj = types.SimpleNamespace(cpCorrectedTotalEnergy=None)
+
+	endStr = "BSSE-free interaction energy"
+	while (endStr not in fileAsList[lineIdx]) and (lineIdx<len(fileAsList)):
+		if "CP-corrected Total energy" in fileAsList[lineIdx]:
+			corrE = float( fileAsList[lineIdx].strip().split()[-2] ) * HART_TO_EV
+			outObj.cpCorrectedTotalEnergy = corrE
+			retOutObj = True
+		lineIdx += 1
+
+	if retOutObj:
+		outDict["bsse"] = outObj
+
+	return outDict, lineIdx-1
 
 def parseXyzFromGeomOpt(inpFile):
 	outFileStr = _getFileStrFromInpFile(inpFile)

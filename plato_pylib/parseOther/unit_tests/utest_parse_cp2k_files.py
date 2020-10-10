@@ -209,6 +209,45 @@ PROGRAM ENDED
 		self.assertAlmostEqual( expOneNorm, actObj.estimate.oneNorm )
 
 
+class TestParseBSSE(unittest.TestCase):
+
+	def setUp(self):
+		self.createTestObjs()
+
+	def createTestObjs(self):
+		self.sectionA = self._loadSectionBSSE_a()
+		self.startIdxA = 2
+		self.fileAsListA = self.sectionA.split("\n")
+
+	def _loadSectionBSSE_a(self):
+		return """
+ -------------------------------------------------------------------------------
+ -                                                                             -
+ -                                 BSSE RESULTS                                -
+ -                                                                             -
+ -                 CP-corrected Total energy:       33.604063                  -
+ -                                                                             -
+ -                       1-body contribution:       69.221187                  -
+ -                       1-body contribution:      -30.604558                  -
+ -                       1-body contribution:       -3.741475                  -
+ -                                                                             -
+ -                       2-body contribution:       -2.753861                  -
+ -                       2-body contribution:       -1.832959                  -
+ -                       2-body contribution:        0.406903                  -
+ -                       3-body contribution:        2.908826                  -
+ -                 BSSE-free interaction energy:       -1.271091               -
+ -------------------------------------------------------------------------------
+"""
+
+	def testExpectedCorrectedEnergyA(self):
+		expCorrEnergy = 33.604063*tCode.HART_TO_EV
+		expEndIdx = 14
+		actDict, actEndIdx = tCode._parseBSSESection(self.fileAsListA, self.startIdxA)
+		actCorrEnergy = actDict["bsse"].cpCorrectedTotalEnergy
+		self.assertEqual(expEndIdx, actEndIdx)
+		self.assertAlmostEqual(expCorrEnergy, actCorrEnergy)
+
+
 class TestParseCP2kGeomOutputXyzFiles(unittest.TestCase):
 
 	def setUp(self):
