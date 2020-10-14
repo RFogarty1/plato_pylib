@@ -132,6 +132,19 @@ class UnitCell():
 		return outVal
 
 
+	def toDict(self):
+		outDict = dict()
+		outDict["lattParams"] = self.getLattParamsList()
+		outDict["lattAngles"] = self.getLattAnglesList()
+		outDict["fractCoords"] = self.fractCoords
+		return outDict
+
+	@classmethod
+	def fromDict(self, inpDict):
+		outObj = UnitCell(lattParams=inpDict["lattParams"], lattAngles=inpDict["lattAngles"])
+		outObj.fractCoords = inpDict["fractCoords"]
+		return outObj
+
 	@classmethod
 	def fromLattVects(cls, lattVectors:"iterable, len=3", fractCoords = None):
 		lattParams, lattAngles = lattParamsAndAnglesFromLattVects(lattVectors)
@@ -144,12 +157,14 @@ class UnitCell():
 
 	@classmethod
 	def fromFile(cls, inpPath):
+		""" Deprecated; no idea if it works properly """
 		with open(inpPath) as f:
 			inpDict = json.load(f)
 		outObj = cls.fromLattVects( inpDict["lattvects"], fractCoords = inpDict["fractCoords".lower()] )
 		return outObj
 
 	def writeFile(self,outPath):
+		""" Deprecated; no idea if it works propert """
 		outDict = dict()
 		outDict["lattvects"] = self.lattVects
 		outDict["fractCoords".lower()] = self.fractCoords

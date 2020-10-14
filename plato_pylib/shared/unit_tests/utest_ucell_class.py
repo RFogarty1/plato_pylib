@@ -169,6 +169,14 @@ class TestUnitCellClass(unittest.TestCase):
 		for key in expAngles.keys():
 			self.assertAlmostEqual( expAngles[key], actAngles[key] )
 
+	def testToAndFromDictAreConsistent(self):
+		lattParams, lattAngles = [2,2,3], [90,90,120]
+		expObj = tCode.UnitCell(lattParams=lattParams, lattAngles=lattAngles)
+		expObj.fractCoords = self.fractCoordsA
+		tempDict = expObj.toDict()
+		actObj = tCode.UnitCell.fromDict(tempDict)
+		self.assertEqual(expObj, actObj)
+
 
 class TestCartCoords(unittest.TestCase):
 
