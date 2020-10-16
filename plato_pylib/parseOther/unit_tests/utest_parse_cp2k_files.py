@@ -282,6 +282,68 @@ class TestParseCpoutRaisesParseFileError(unittest.TestCase):
 		with self.assertRaises(errorHelp.PlatoPylibParseFileError):
 			tCode.parseCpout(None)
 
+
+class TestParseExtraEnergiesSection(unittest.TestCase):
+
+	def setUp(self):
+		self.sectionA = self._loadEnergySectionSmearOnA()
+		self.sectionB = self._loadEnergySectionDispersionOn()
+		self.startIdxA, self.startIdxB = 2, 2
+		self.fileAsListA = self.sectionA.split("\n")
+		self.fileAsListB = self.sectionB.split("\n")
+
+	def _loadEnergySectionSmearOnA(self):
+		return """
+
+  Overlap energy of the core charge distribution:               0.00000000000077
+  Self energy of the core charge distribution:                 -1.95573147986197
+  Core Hamiltonian energy:                                      0.48619741993392
+  Hartree energy:                                               1.02122004110676
+  Exchange-correlation energy:                                 -0.43144128983853
+  Electronic entropic energy:                                  -0.00001257113930
+  Fermi energy:                                                 0.11183551444274
+
+  Total energy:                                                -0.87976787980010
+
+		"""
+
+	def _loadEnergySectionDispersionOn(self):
+		return """
+
+  Overlap energy of the core charge distribution:               0.00000249522169
+  Self energy of the core charge distribution:                -37.95380752448555
+  Core Hamiltonian energy:                                     10.92685808005664
+  Hartree energy:                                              17.85044956271290
+  Exchange-correlation energy:                                 -5.94473660189153
+  Dispersion energy:                                           -0.00355123783846
+
+  Total energy:                                               -15.12478522622432
+
+		"""
+
+	def testExpectedWhenSmearingOn(self):
+		expEntropy = -0.00001257113930*tCode.HART_TO_EV
+		expEnergy = -0.87976787980010*tCode.HART_TO_EV
+		expEndIdx = 11
+		actDict, actEndIdx = tCode._parseEnergiesSection(self.fileAsListA, self.startIdxA)
+		actEntropy, actEnergy = actDict["energies"].entropy, actDict["energies"].electronicTotalE
+		self.assertEqual(expEndIdx, actEndIdx)
+		self.assertAlmostEqual(expEntropy, actEntropy)
+		self.assertAlmostEqual(expEnergy, actEnergy)
+
+	def testExpectedWhenDispersionCorrOn(self):
+		expEntropy = None
+		expEnergy = -15.12478522622432*tCode.HART_TO_EV
+		expDispersion = -0.00355123783846*tCode.HART_TO_EV
+		expEndIdx = 10
+		actDict, actEndIdx = tCode._parseEnergiesSection(self.fileAsListB, self.startIdxB)
+		actEntropy, actEnergy = actDict["energies"].entropy, actDict["energies"].electronicTotalE
+		actDispersion = actDict["energies"].dispersion
+		self.assertEqual(expEndIdx, actEndIdx)
+		self.assertEqual(expEntropy,actEntropy)
+		self.assertAlmostEqual(expEnergy, actEnergy)
+		self.assertAlmostEqual(expDispersion,actDispersion)
+
 #File contains mock results of two optimisations; of which only the second are of interest really
 def getGeomOptXyzFileStrA():
 	fileStr = """

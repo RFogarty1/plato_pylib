@@ -14,6 +14,7 @@ class EnergyVals():
 		self.tb2CohesiveFree = kwargs.get("tb2CohesiveFree".lower(), None) 
 		self.dftTotalElectronic = kwargs.get("dftTotalElectronic".lower(),None)
 		self.castepTotalElectronic = kwargs.get("castepTotalElectronic".lower(), None)
+		self.dispersion = kwargs.get("dispersion",None)
 
 	def convRydToEv(self):
 		for key in self.__dict__:
@@ -41,6 +42,7 @@ class EnergyVals():
 
 	@property
 	def electronicTotalE(self):
+		""" Note: Castep/CP2K (at least) include the entropy contribution here """
 		if self.castepTotalElectronic is not None:
 			return self.castepTotalElectronic
 		if self.dftTotalElectronic is not None:
@@ -50,6 +52,15 @@ class EnergyVals():
 		else:
 			raise ValueError("No information on total electronic energy is present in current "
 			                 "EnergyVals object")
+
+	@property
+	def electronicMinusEntropy(self):
+		raise NotImplementedError("")
+
+	@property
+	def electronicMinusHalfEntropy(self):
+		""" This is what castep uses to get 0K estimates """
+		raise NotImplementedError("")
 
 	@property
 	def freeCohesiveE(self):

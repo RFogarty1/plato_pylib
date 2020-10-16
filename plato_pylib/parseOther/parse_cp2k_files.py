@@ -70,16 +70,20 @@ def parseCpout(outFile):
 
 def _getStandardCpoutParser():
 	outParser = CpoutFileParser()
-	condNumbDeco = getDecoToAttachSectionParserToCpoutParser("OVERLAP MATRIX CONDITION NUMBER AT GAMMA POINT", _parseOverlapCondSection)
-	bsseDeco = getDecoToAttachSectionParserToCpoutParser("BSSE RESULTS", _parseBSSESection)
-	condNumbDeco(outParser)
-	bsseDeco(outParser)
+	_addSearchWordAndFunctToParserObj("OVERLAP MATRIX CONDITION NUMBER AT GAMMA POINT", _parseOverlapCondSection, outParser)
+	_addSearchWordAndFunctToParserObj("BSSE RESULTS", _parseBSSESection, outParser)
+	_addSearchWordAndFunctToParserObj("Core Hamiltonian energy", _parseEnergiesSection, outParser)
 	return outParser
 
 def _getFileAsListFromInpFile(inpFile):
 	with open(inpFile,"rt") as f:
 		fileAsList = f.readlines()
 	return fileAsList
+
+
+def _addSearchWordAndFunctToParserObj(searchWord, funct, parserObj):
+	decoObj = getDecoToAttachSectionParserToCpoutParser(searchWord, funct)
+	decoObj(parserObj)
 
 #Want to introduce a way to add a new section to parse without directly modifying the parse source code
 #(justified by open-closed principle)
@@ -123,11 +127,6 @@ class CpoutFileParser():
 			currLine = fileAsList[lineIdx].strip()
 			if currLine.find("CELL|") != -1:
 				outDict["unitCell"], lineIdx = parseCellSectionCpout(fileAsList,lineIdx)
-			elif currLine.find("Total energy:") != -1 and currLine.find("CP-corrected")==-1:
-				totalE = float( currLine.split()[-1] ) * HART_TO_EV
-				outDict["energy"] = totalE
-				outDict["energies"] = EnergyVals(dftTotalElectronic=totalE)
-				lineIdx += 1
 			elif currLine.find("Number of atoms:") != -1:
 				outDict["numbAtoms"] += int( currLine.split()[-1]  ) 
 				lineIdx += 1
@@ -296,6 +295,26 @@ def _parseBSSESection(fileAsList, lineIdx):
 		outDict["bsse"] = outObj
 
 	return outDict, lineIdx-1
+
+
+def _parseEnergiesSection(fileAsList, lineIdx):
+	outDict = dict()
+	dftTotalElectronic, dispVal, entropy = None, None, None
+	endStr = "Total energy:"
+	while (endStr not in fileAsList[lineIdx]) and (lineIdx<len(fileAsList)):
+		if "Electronic entropic energy" in fileAsList[lineIdx]:
+			entropy = float( fileAsList[lineIdx].split()[-1] ) * HART_TO_EV
+		if "Dispersion energy" in fileAsList[lineIdx]:
+			dispVal = float( fileAsList[lineIdx].split()[-1] ) * HART_TO_EV
+		lineIdx += 1
+
+	dftTotalElectronic = float( fileAsList[lineIdx].split()[-1] ) * HART_TO_EV
+	lineIdx += 1
+
+	outDict["energies"] = EnergyVals(dispersion=dispVal, entropy=entropy, dftTotalElectronic=dftTotalElectronic)
+	outDict["energy"] = dftTotalElectronic
+
+	return outDict,lineIdx
 
 def parseXyzFromGeomOpt(inpFile):
 	outFileStr = _getFileStrFromInpFile(inpFile)
