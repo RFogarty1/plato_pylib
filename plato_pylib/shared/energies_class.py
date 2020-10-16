@@ -55,12 +55,20 @@ class EnergyVals():
 
 	@property
 	def electronicMinusEntropy(self):
-		raise NotImplementedError("")
+		if self.entropy is None:
+			outVal = None
+		else:
+			outVal = self.electronicTotalE - self.entropy
+		return outVal
 
 	@property
 	def electronicMinusHalfEntropy(self):
 		""" This is what castep uses to get 0K estimates """
-		raise NotImplementedError("")
+		if self.entropy is None:
+			outVal = None
+		else:
+			outVal = self.electronicTotalE - (0.5*self.entropy)
+		return outVal
 
 	@property
 	def freeCohesiveE(self):
