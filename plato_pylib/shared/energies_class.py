@@ -6,6 +6,7 @@ RYD_TO_EV = 13.6056980659
 class EnergyVals():
 	def __init__(self, **kwargs):
 		kwargs = {k.lower():v for k,v in kwargs.items()}
+		self._eqTol = 1e-5
 		self._e0Tot = kwargs.get("e0tot", None)
 		self._e0Coh = kwargs.get("e0coh", None)
 		self.e1 = kwargs.get("e1", None)
@@ -16,11 +17,25 @@ class EnergyVals():
 		self.castepTotalElectronic = kwargs.get("castepTotalElectronic".lower(), None)
 		self.dispersion = kwargs.get("dispersion",None)
 
+		#These are numerical-attributes which form the base-data for the class. Keep them
+		#here since they are used both to convert the object into a dictionary AND
+		#to check equality between objects
+		self.numAttrs = ["e0Tot", "e0Coh", "e1", "e2", "entropy", "tb2CohesiveFree",
+		                 "dftTotalElectronic", "castepTotalElectronic", "dispersion"]
+
 	def convRydToEv(self):
-		for key in self.__dict__:
+		for key in self.numAttrs:
 			if getattr(self,key) is not None:
 				setattr(self, key, getattr(self, key)*RYD_TO_EV)
 
+	def toDict(self):
+		extraAttrs = ["electronicTotalE", "electronicMinusEntropy", "electronicMinusHalfEntropy"]
+		basicDict = {attr:getattr(self,attr) for attr in self.numAttrs if getattr(self,attr) is not None}
+		extraAttrDict = {attr:getattr(self,attr) for attr in extraAttrs if getattr(self,attr) is not None}
+		outDict = dict()
+		outDict.update(basicDict)
+		outDict.update(extraAttrDict)
+		return outDict
 
 	@property
 	def e0Tot(self):
@@ -80,3 +95,23 @@ class EnergyVals():
 #			raise ValueError("No information on free Cohesive Energy appears to be "
 #			                 "held in current EnergyVals object")
 
+
+	def __eq__(self, other):
+		eqTol = min([abs(x._eqTol) for x in [self,other]])
+
+		for currAttr in self.numAttrs:
+			if not self._attrsAreTheSameOnOtherObj(currAttr, other, eqTol):
+				return False
+
+		return True
+
+	def _attrsAreTheSameOnOtherObj(self, attr, other, eqTol):
+		valA, valB = getattr(self, attr), getattr(other,attr)
+		if (valA is None) and (valB is None):
+			return True
+		elif (valA is None) or (valB is None):
+			return False
+
+		if abs(valA-valB)>eqTol:
+			return False
+		return True
