@@ -370,6 +370,29 @@ class TestFoldInAtomCoords(unittest.TestCase):
 		tCode.foldAtomicPositionsIntoCell(actCell)
 		self.assertEqual(expCell,actCell)
 
+class TestGetDensityFromUCellObj(unittest.TestCase):
+
+	def setUp(self):
+		self.lattParamsA = [10,10,10]
+		self.lattAnglesA = [90,90,90]
+		self.fractCoordsA = [ [0.5,0.5,0.5,"O"],
+		                      [0.6,0.6,0.6,"C"] ]
+		self.massDict = {"O":16,"C":12}
+		self.createTestObjs()
+
+	def createTestObjs(self):
+		currKwargs = {"lattParams":self.lattParamsA, "lattAngles":self.lattAnglesA}
+		self.testCellA = tCode.UnitCell(**currKwargs)
+		self.testCellA.fractCoords = self.fractCoordsA
+
+	@mock.patch("plato_pylib.shared.ucell_class.uConv")
+	def testWithNoConvFactorsA_mockedAvogadroNumber(self, mockedUnitConvs):
+		mockedUnitConvs.AVOGADRO_NUMBER = 2
+		totalMass = (16/mockedUnitConvs.AVOGADRO_NUMBER) + (12/mockedUnitConvs.AVOGADRO_NUMBER)
+		expVal = totalMass/(10**3)
+		actVal = tCode.getDensityFromUCellObj(self.testCellA, massDict=self.massDict, lenConvFactor=1)
+		self.assertAlmostEqual(expVal,actVal)
+
 
 if __name__ == '__main__':
 	unittest.main()
