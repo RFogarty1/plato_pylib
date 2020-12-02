@@ -178,6 +178,14 @@ class TestUnitCellClass(unittest.TestCase):
 		self.assertEqual(expObj, actObj)
 
 
+	def testNoErrorWhenChangingLattParamsWithEmptyCoordList(self):
+		expLattParams = [10,10,10]
+		self.assertFalse( all([abs(x-y)<1e-1 for x,y in it.zip_longest(expLattParams,self.testObjA.getLattParamsList())]) )
+		self.testObjA.cartCoords = list()
+		self.testObjA.setLattParams(expLattParams)
+		[self.assertAlmostEqual(e,a) for e,a in it.zip_longest(expLattParams, self.testObjA.getLattParamsList())]
+
+
 class TestCartCoords(unittest.TestCase):
 
 	def setUp(self):

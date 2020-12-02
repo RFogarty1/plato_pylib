@@ -240,7 +240,7 @@ class UnitCell():
 		self._lattParams = dict(value)
 		newLattVects = self.lattVects
 
-		if self.fractCoords is not None:
+		if (self.fractCoords is not None) and (self.fractCoords!=list()):
 			self._fractCoords = getTransformedFractCoords(oldLattVects, newLattVects, self._fractCoords)
 
 	@property
