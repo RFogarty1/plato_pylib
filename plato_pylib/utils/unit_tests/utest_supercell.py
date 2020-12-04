@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import copy
 import unittest
 import plato_pylib.utils.supercell as tCode
 import plato_pylib.shared.ucell_class as UCell
@@ -83,6 +84,16 @@ class testSurroundCell(unittest.TestCase):
 	def testForSimpleOneAtomCubicCell(self):
 		expCell = self._loadExpectedForSingleAtomCubicCell()
 		actCell = tCode.getUnitCellSurroundedByNeighbourCells(self.testCellA)
+		self.assertEqual(expCell,actCell)
+
+	def testForSimpleOneAtomCubic_removedCentralAtom(self):
+		expCell = self._loadExpectedForSingleAtomCubicCell()
+		cartCoords = copy.deepcopy(expCell.cartCoords)
+		expStartCart = [0.5,1,1.5]
+		[self.assertAlmostEqual(e,a) for e,a in zip(cartCoords[0][:3],expStartCart)]
+		cartCoords.pop(0)
+		expCell.cartCoords = cartCoords
+		actCell = tCode.getUnitCellSurroundedByNeighbourCells(self.testCellA,removeStartCoords=True)
 		self.assertEqual(expCell,actCell)
 
 	def _loadExpectedForSingleAtomCubicCell(self):

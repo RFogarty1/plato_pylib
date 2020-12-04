@@ -15,7 +15,9 @@ def superCellFromUCell(unitCell, dims):
 
 	return zShifted
 
-def getUnitCellSurroundedByNeighbourCells(unitCell, alongA=True, alongB=True, alongC=True):
+
+
+def getUnitCellSurroundedByNeighbourCells(unitCell, alongA=True, alongB=True, alongC=True, removeStartCoords=False):
 	""" Gets the unit cell surrouned by images in each direction; meaning a total of 27 cells merged into a supercell. Note that the original cells cartesian co-ordinates will be unchanged; meaning that most atoms will have -ve x/y/z co-ordinates
 	
 	Args:
@@ -23,15 +25,34 @@ def getUnitCellSurroundedByNeighbourCells(unitCell, alongA=True, alongB=True, al
 		alongA (Optional, Bool): Whether to get the images along lattice vector a (default=True)
 		alongB (Optional, Bool): Whether to get the images along lattice vector b (default=True)
 		alongC (Optional, Bool): Whether to get the images along lattice vector c (default=True)
+		removeStartCoords (Optional, Bool): Option to remove the co-ordinates from the original cell; useful if your looking for ONLY the neighbour co-ords
 			 
 	Returns
 		outCell: a DIFFERENT plato_pylib UnitCell object containing the original surrounded by 26 image cells in total
  
 	Raises:
 	"""
+
+	startCoords = copy.deepcopy(unitCell.cartCoords)
+	nStartCoords = len(startCoords)
 	xCell = _getCellWithImageAddedEachSide(unitCell,0) if alongA is True else unitCell
 	yCell = _getCellWithImageAddedEachSide(xCell,1) if alongB is True else xCell
 	outCell = _getCellWithImageAddedEachSide(yCell,2) if alongC is True else yCell
+
+	if removeStartCoords:
+		outCoords = list()
+		tempCoords = copy.deepcopy(outCell.cartCoords)
+		indicesToSkip = list()
+		diffTol = 1e-4
+		for idx,coord in enumerate(startCoords):
+			diffVals = [abs(x-y) for x,y in zip(tempCoords[idx][:3],startCoords[idx][:3])]
+			assert all([x<1e-4 for x in diffVals])
+			indicesToSkip.append(idx)
+		for idx,coord in enumerate(tempCoords):
+			if idx not in indicesToSkip:
+				outCoords.append(tempCoords[idx])
+		outCell.cartCoords = outCoords
+
 	return outCell
 
 
