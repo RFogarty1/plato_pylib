@@ -455,9 +455,22 @@ def _getCartCoordsFromFract_NoElement(lattVects,fractCoords):
 	return outList
 
 def getFractCoordsFromCartCoords(lattVects, cartCoords):
+	if len(cartCoords)==0:
+		return list()
+
 	outList = list()
-	for currAtom in cartCoords:
-		outList.append( _getFractCoordsFromCartOneAtom(lattVects, currAtom[:3]) + [currAtom[-1]] ) 
+	eleList = [x[-1] for x in cartCoords]
+	coordList = [x[:3] for x in cartCoords]
+
+	#Convert x,y,z into fract coords
+	cartCoordsT = np.array(coordList).transpose()
+	vMatrix = np.array(lattVects).transpose()
+	fractVals = ( np.linalg.inv(vMatrix) @ np.array(cartCoordsT) ).transpose().tolist()
+
+	#Construct the output list
+	for fVals,eleKey in it.zip_longest(fractVals,eleList):
+		outList.append( fVals+[eleKey] )
+
 	return outList
 
 def _getFractCoordsFromCartOneAtom(lattVects:"3x3 iterxiter", cartCoords:"3 item list"):
