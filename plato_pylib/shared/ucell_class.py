@@ -42,13 +42,9 @@ def getTransformedFractCoords(origLattVects:"list of lists [[v1],[v2],[v3]]", fi
 	finalCartArray = (transformMatrix @ origCartArrayT).transpose()
 
 	#Step 3 = Convert the transformed cartesian co-ordinates into fractional ones
-	finalFractCoords = list()
-	for currAtomCart in finalCartArray:
-		finalFractCoords.append( _getFractCoordsFromCartOneAtom(finalLattVects, currAtomCart) )
+	finalFractCoords = [ x[:3] for x in getFractCoordsFromCartCoords(finalLattVects,finalCartArray) ]
 
 	return finalFractCoords
-
-
 
 
 
@@ -446,12 +442,10 @@ def getCartCoordsFromFractCoords(lattVects, fractCoords):
 
 def _getCartCoordsFromFract_NoElement(lattVects,fractCoords):
 	outList = list()
-	for currAtom in fractCoords:
-		fromA  = [currAtom[0]*x for x in lattVects[0]]
-		fromB  = [currAtom[1]*x for x in lattVects[1]]
-		fromC  = [currAtom[2]*x for x in lattVects[2]]
-		outVect = [a+b+c for a,b,c in zip(fromA,fromB,fromC)]
-		outList.append(outVect)
+	lVectArray = np.array(lattVects).transpose()
+	fCoordArray = np.array(fractCoords).transpose()
+	outArray = np.dot(lVectArray, fCoordArray)
+	outList = outArray.transpose().tolist()
 	return outList
 
 def getFractCoordsFromCartCoords(lattVects, cartCoords):

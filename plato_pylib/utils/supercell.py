@@ -87,15 +87,14 @@ def _getSuperCellOneDim(unitCell,dimIdx:"0,1,2 for x,y,z", multiple:"int, number
 	startCellVects = copy.deepcopy(unitCell.lattVects)
 	startCellParams = unitCell.getLattParamsList()
 	unitVects = [_getUnitVectorFromVector(x) for x in startCellVects]
-	startFractCoords = unitCell.fractCoords
-	startCartCoords = UCell.getCartCoordsFromFractCoords(startCellVects, startFractCoords)
+	startCartCoords = unitCell.cartCoords
 
 	#Step 2 = figure out the translation vector required
 	transVector = [startCellParams[dimIdx]*x for x in unitVects[dimIdx]]
 
 	#Step 3 = Get the cartesian co-ordinates for new atoms (translate n-times from the translation vector)
-	endCartCoords = UCell.getCartCoordsFromFractCoords(startCellVects, startFractCoords)
-	
+	endCartCoords = [list(x) for x in startCartCoords]
+
 	for atom in startCartCoords:
 		for mult in range(1,multiple):
 			newAtom = [x + (t*mult) for x,t in it.zip_longest(atom[:3],transVector)]
@@ -110,12 +109,12 @@ def _getSuperCellOneDim(unitCell,dimIdx:"0,1,2 for x,y,z", multiple:"int, number
 			currVect = list(vect)
 		newCellVects.append(currVect)
 
-	#Step 5 = Get new fractional co-ordinates
-	fractCoords = UCell.getFractCoordsFromCartCoords(newCellVects,endCartCoords)
 
 	#Step 6 = Create the output object
-	outCell = UCell.UnitCell.fromLattVects( newCellVects, fractCoords=fractCoords)
+	outCell = UCell.UnitCell.fromLattVects( newCellVects)
+	outCell.cartCoords = endCartCoords
 	outCell.putCAlongZ = unitCell.putCAlongZ
+
 	return outCell
 
 
