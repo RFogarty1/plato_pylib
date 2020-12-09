@@ -139,7 +139,8 @@ class UnitCell():
 	@classmethod
 	def fromDict(self, inpDict):
 		outObj = UnitCell(lattParams=inpDict["lattParams"], lattAngles=inpDict["lattAngles"])
-		outObj.fractCoords = inpDict["fractCoords"]
+		if inpDict.get("fractCoords",None) is not None:
+			outObj.fractCoords = inpDict["fractCoords"]
 		return outObj
 
 	@classmethod

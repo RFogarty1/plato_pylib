@@ -177,6 +177,12 @@ class TestUnitCellClass(unittest.TestCase):
 		actObj = tCode.UnitCell.fromDict(tempDict)
 		self.assertEqual(expObj, actObj)
 
+	def testToAndFromDictAreConsistent_noCoords(self):
+		lattParams, lattAngles = [2,2,3], [90,90,120]
+		expObj = tCode.UnitCell(lattParams=lattParams, lattAngles=lattAngles)
+		tempDict = expObj.toDict()
+		actObj = tCode.UnitCell.fromDict(tempDict)
+		self.assertEqual(expObj, actObj)
 
 	def testNoErrorWhenChangingLattParamsWithEmptyCoordList(self):
 		expLattParams = [10,10,10]
