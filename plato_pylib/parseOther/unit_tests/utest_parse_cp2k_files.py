@@ -310,6 +310,34 @@ class TestParseTimingSection(unittest.TestCase):
 
 
 
+class TestParseNumbProcsSection(unittest.TestCase):
+
+	def setUp(self):
+		self.createTestObjs()
+
+	def createTestObjs(self):
+		self.sectionA = self._loadTestSectionA()
+		self.startIdxA = 3
+		self.fileAsListA = self.sectionA.split("\n")
+
+	def _loadTestSectionA(self):
+		return """
+ GLOBAL| FFTs using library dependent lengths                                  F
+ GLOBAL| Global print level                                               MEDIUM
+ GLOBAL| Total number of message passing processes                            43
+ GLOBAL| Number of threads for this process                                    1
+ GLOBAL| This output is from process                                           0
+ GLOBAL| CPU model name :  Intel(R) Xeon(R) CPU E5-1620 v4 @ 3.50GHz
+		"""
+
+	def testExpectedFromSimpleCaseA(self):
+		expEndIdx = 5
+		expDict = {"nMPI": 43, "nThreads": 1}
+		actDict, actEndIdx = tCode._parseNumbProcsSection(self.fileAsListA, self.startIdxA)
+		self.assertEqual(expEndIdx, actEndIdx)
+		self.assertEqual(expDict, actDict)
+
+
 class TestParseCP2kGeomOutputXyzFiles(unittest.TestCase):
 
 	def setUp(self):

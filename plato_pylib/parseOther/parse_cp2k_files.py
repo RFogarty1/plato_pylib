@@ -74,6 +74,7 @@ def _getStandardCpoutParser():
 	_addSearchWordAndFunctToParserObj("BSSE RESULTS", _parseBSSESection, outParser)
 	_addSearchWordAndFunctToParserObj("Core Hamiltonian energy", _parseEnergiesSection, outParser)
 	_addSearchWordAndFunctToParserObj("T I M I N G", _parseTimingSection, outParser)
+	_addSearchWordAndFunctToParserObj("Total number of message passing", _parseNumbProcsSection, outParser)
 	return outParser
 
 def _getFileAsListFromInpFile(inpFile):
@@ -330,6 +331,21 @@ def _parseTimingSection(fileAsList, lineIdx):
 	outDict["timings"] = types.SimpleNamespace(**timingDict)
 
 	return outDict, lineIdx-1
+
+
+def _parseNumbProcsSection(fileAsList, lineIdx):
+	outDict = dict()
+	endStr = "This output is from"
+	while (endStr not in fileAsList[lineIdx]) and (lineIdx<len(fileAsList)):
+		currLine = fileAsList[lineIdx]
+		if "Total number of message passing processes" in currLine:
+			outDict["nMPI"] = int(currLine.strip().split()[-1])
+		elif "Number of threads" in currLine:
+			outDict["nThreads"] = int(currLine.strip().split()[-1])
+
+		lineIdx +=1
+
+	return outDict, lineIdx
 
 def parseXyzFromGeomOpt(inpFile):
 	outFileStr = _getFileStrFromInpFile(inpFile)
