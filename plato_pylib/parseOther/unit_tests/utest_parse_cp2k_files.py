@@ -248,6 +248,68 @@ class TestParseBSSE(unittest.TestCase):
 		self.assertAlmostEqual(expCorrEnergy, actCorrEnergy)
 
 
+class TestParseTimingSection(unittest.TestCase):
+
+	def setUp(self):
+		self.createTestObjs()
+
+	def createTestObjs(self):
+		self.sectionA = self._loadTestSectionA()
+		self.startIdxA = 3
+		self.fileAsListA = self.sectionA.split("\n")
+
+	def _loadTestSectionA(self):
+		return """
+ -------------------------------------------------------------------------------
+ -                                                                             -
+ -                                T I M I N G                                  -
+ -                                                                             -
+ -------------------------------------------------------------------------------
+ SUBROUTINE                       CALLS  ASD         SELF TIME        TOTAL TIME
+                                MAXIMUM       AVERAGE  MAXIMUM  AVERAGE  MAXIMUM
+ CP2K                                 1  1.0    0.008    0.008  101.536  101.536
+ cp_cell_opt                          1  2.0    0.000    0.000  101.482  101.482
+ geoopt_bfgs                          1  3.0    0.001    0.001  101.481  101.481
+ cp_eval_at                           6  4.0    0.001    0.001  101.476  101.476
+ qs_energies                          6  5.8    0.009    0.009   96.070   96.070
+ scf_env_do_scf                       6  6.8    0.000    0.000   93.674   93.674
+ scf_env_do_scf_inner_loop           48  7.8    0.016    0.016   93.674   93.674
+ qs_forces                            5  5.0    0.002    0.002   86.009   86.009
+ qs_scf_new_mos_kp                   48  8.8    0.000    0.000   41.202   41.202
+ do_general_diag_kp                  48  9.8    0.472    0.472   41.201   41.201
+ rebuild_ks_matrix                   53  9.6    0.000    0.000   30.080   30.080
+ qs_ks_build_kohn_sham_matrix        53 10.6    0.034    0.034   30.080   30.080
+ sum_up_and_integrate                53 11.6    0.000    0.000   29.876   29.876
+ integrate_v_rspace                  53 12.6   28.935   28.935   29.876   29.876
+ qs_rho_update_rho                   54  8.8    0.000    0.000   26.456   26.456
+ calculate_rho_elec                  54  9.8   26.441   26.441   26.456   26.456
+ qs_ks_update_qs_env                 48  8.8    0.000    0.000   25.682   25.682
+ rskp_transform                   48000 10.8   15.279   15.279   15.279   15.279
+ kpoint_density_transform            53 10.6    0.163    0.163   11.302   11.302
+ copy_dbcsr_to_fm                 98898 10.8    0.645    0.645    9.582    9.582
+ transform_dmat                   26500 11.6    8.052    8.052    8.052    8.052
+ dbcsr_desymmetrize_deep         194898 11.3    2.045    2.045    6.474    6.474
+ dbcsr_complete_redistribute     151898 12.1    2.440    2.440    6.062    6.062
+ qs_ks_update_qs_env_forces           5  6.0    0.000    0.000    4.507    4.507
+ dbcsr_finalize                  515784 12.4    1.003    1.003    4.057    4.057
+ copy_fm_to_dbcsr                 53000 11.6    0.126    0.126    2.948    2.948
+ -------------------------------------------------------------------------------
+
+ The number of warnings for this run is : 1
+ 
+ -------------------------------------------------------------------------------
+"""
+
+	def testExpectedOutputCaseA(self):
+		expEndIdx = 35
+		expObj = types.SimpleNamespace( CP2K_total=101.536 )
+		expDict = {"timings": expObj}
+		actDict, actEndIdx = tCode._parseTimingSection(self.fileAsListA, self.startIdxA)
+		self.assertEqual(expEndIdx, actEndIdx)
+		self.assertEqual(expDict, actDict)
+
+
+
 class TestParseCP2kGeomOutputXyzFiles(unittest.TestCase):
 
 	def setUp(self):

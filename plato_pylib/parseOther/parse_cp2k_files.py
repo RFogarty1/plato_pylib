@@ -73,6 +73,7 @@ def _getStandardCpoutParser():
 	_addSearchWordAndFunctToParserObj("OVERLAP MATRIX CONDITION NUMBER AT GAMMA POINT", _parseOverlapCondSection, outParser)
 	_addSearchWordAndFunctToParserObj("BSSE RESULTS", _parseBSSESection, outParser)
 	_addSearchWordAndFunctToParserObj("Core Hamiltonian energy", _parseEnergiesSection, outParser)
+	_addSearchWordAndFunctToParserObj("T I M I N G", _parseTimingSection, outParser)
 	return outParser
 
 def _getFileAsListFromInpFile(inpFile):
@@ -315,6 +316,20 @@ def _parseEnergiesSection(fileAsList, lineIdx):
 	outDict["energy"] = dftTotalElectronic
 
 	return outDict,lineIdx
+
+
+def _parseTimingSection(fileAsList, lineIdx):
+	outDict = dict()
+	endStr = "The number of warnings"
+	timingDict = dict()
+	while (endStr not in fileAsList[lineIdx]) and (lineIdx<len(fileAsList)):
+		if "CP2K  " in fileAsList[lineIdx]:
+			timingDict["CP2K_total"] = float(fileAsList[lineIdx].strip().split()[-1])
+		lineIdx+=1
+
+	outDict["timings"] = types.SimpleNamespace(**timingDict)
+
+	return outDict, lineIdx-1
 
 def parseXyzFromGeomOpt(inpFile):
 	outFileStr = _getFileStrFromInpFile(inpFile)
