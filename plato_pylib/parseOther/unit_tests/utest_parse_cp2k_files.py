@@ -14,12 +14,14 @@ import plato_pylib.shared.custom_errors as errorHelp
 import numpy as np
 
 
-
+#This used to be neccesary when i was attaching to the CLASS rather than instances of the class
 def createStubClassForTestingAttachingFunctions():
 	class StubClassForTestingAttachingFuncts():
-		extraSingleLinePatterns = list()
-		extraFunctsToParseFromSingleLine = list()
-	return StubClassForTestingAttachingFuncts
+		def __init__(self):
+			self.extraSingleLinePatterns = list()
+			self.extraFunctsToParseFromSingleLine = list()
+			self.extraHandleParsedOutputFuncts = list()
+	return StubClassForTestingAttachingFuncts()
 
 #NOTE: I can actually also test the attaching to instances rather than the full class maybe. May or may not require
 #that i set an initializer to (likely shallow) copy the initial lists
@@ -33,10 +35,12 @@ class testAttachExtraCommandToParser(unittest.TestCase):
 
 	def testPatternGetsAppended(self):
 		testPattern, testFunct = mock.Mock(), mock.Mock()
-		decoObj = tCode.getDecoToAttachSectionParserToCpoutParser(testPattern, testFunct)
+		testHandleDict = mock.Mock()
+		decoObj = tCode.getDecoToAttachSectionParserToCpoutParser(testPattern, testFunct, handleParsedDictFunct=testHandleDict)
 		decoObj(self.testClsA)
 		self.assertEqual( testPattern,self.testClsA.extraSingleLinePatterns[-1] )
 		self.assertEqual( testFunct, self.testClsA.extraFunctsToParseFromSingleLine[-1] )
+		self.assertEqual( testHandleDict, self.testClsA.extraHandleParsedOutputFuncts[-1] )
 
 #Tests related to parsing of the output file (e.g. outfile.cpout in cp2k.sopt -o outfile.cpout *.inp)
 class testCPoutParsing(unittest.TestCase):
@@ -300,13 +304,22 @@ class TestParseTimingSection(unittest.TestCase):
  -------------------------------------------------------------------------------
 """
 
-	def testExpectedOutputCaseA(self):
+	def testExpectedTotalTimeCaseA(self):
 		expEndIdx = 35
-		expObj = types.SimpleNamespace( CP2K_total=101.536 )
-		expDict = {"timings": expObj}
+		expTotal = 101.536
 		actDict, actEndIdx = tCode._parseTimingSection(self.fileAsListA, self.startIdxA)
+		actTotal = actDict["timings"].CP2K_total
 		self.assertEqual(expEndIdx, actEndIdx)
-		self.assertEqual(expDict, actDict)
+		self.assertAlmostEqual(expTotal, actTotal)
+
+	def testSomeSubroutineTotalTimingsGiven(self):
+		expDict = { "do_general_diag_kp": 41.201,
+		            "sum_up_and_integrate": 29.876 }
+		fullDict, actEndIdx = tCode._parseTimingSection(self.fileAsListA, self.startIdxA)
+		actDict = fullDict["timings"].subroutineTotals
+		for key in expDict.keys():
+			exp, act = expDict[key], actDict[key]
+			self.assertAlmostEqual(exp,act)
 
 
 

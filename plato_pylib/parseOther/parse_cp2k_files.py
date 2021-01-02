@@ -83,18 +83,19 @@ def _getFileAsListFromInpFile(inpFile):
 	return fileAsList
 
 
-def _addSearchWordAndFunctToParserObj(searchWord, funct, parserObj):
-	decoObj = getDecoToAttachSectionParserToCpoutParser(searchWord, funct)
+def _addSearchWordAndFunctToParserObj(searchWord, funct, parserObj, handleParsedDictFunct=None):
+	decoObj = getDecoToAttachSectionParserToCpoutParser(searchWord, funct, handleParsedDictFunct=handleParsedDictFunct)
 	decoObj(parserObj)
 
 #Want to introduce a way to add a new section to parse without directly modifying the parse source code
 #(justified by open-closed principle)
-def getDecoToAttachSectionParserToCpoutParser(pattern, parseFunction):
-	""" Attaches a function to inpCls (which should be CpoutFileParser) for parsing a section of the output file
+def getDecoToAttachSectionParserToCpoutParser(pattern, parseFunction, handleParsedDictFunct=None):
+	""" Attaches a function to inpCls (which should be CpoutFileParser INSTANCE) for parsing a section of the output file
 	
 	Args:
 		pattern: (str) The pattern to search for in a single line of a cpout file. Finding the pattern should trigger the parse function
 		parseFunction: Function with interface parsedDict, lineIdx = parseFunction(fileAsList, lineIdx). lineIdx is the index in the file where the initial arg is passed (when inp-arg) and where the section is over (when it appears as outArg). ParsedDict is simply a dictionary containing key:val pairs for this section; this is used to update the main dictionary the parser outputs.
+		handleParsedDictFunct: f(instance, parsedDict) Default of None means we simply update the output dict with the dict parsed from this section (usual desired behaviour). But setting this function explicitly allows for things such as parsing a series of values (e.g. temperature at each MD step) and saving ALL of them into the outptu dict (instance.outDict)
  
 	Returns
 		parseSectionDeco: Decorator for attaching this section parser to the overall CpoutFileParser. After calling parseSectionDeco(CpoutFileParser) any parser instances should be apply "parseFunction" upon finding "pattern" in any file its passed. Thus, this is essentially acting as a hook function for the parser behaviour.
@@ -103,6 +104,7 @@ def getDecoToAttachSectionParserToCpoutParser(pattern, parseFunction):
 	def decoFunct(inpCls):
 		inpCls.extraSingleLinePatterns.append(pattern)
 		inpCls.extraFunctsToParseFromSingleLine.append(parseFunction)
+		inpCls.extraHandleParsedOutputFuncts.append(handleParsedDictFunct)
 	return decoFunct
 
 
@@ -111,8 +113,11 @@ class CpoutFileParser():
 	"""Class used to parse CP2K files; NOT meant to be called directly in code; At time of writing _getStandardCpoutParser() is the most sensible way to create this object while the parseCpout function is the best way to parse a CP2K output file
 
 	"""
-	extraSingleLinePatterns = list()
-	extraFunctsToParseFromSingleLine = list()
+	def __init__(self):
+		self.extraSingleLinePatterns = list() #Search strings that trigger us to parse a section
+		self.extraFunctsToParseFromSingleLine = list() #Functions to parse the relevant sections and return a dictionary AND lineIdx (so we dont re-read lines in this section) 
+		self.extraHandleParsedOutputFuncts = list() #These functions map the parsed-dicts to the "global" self.outDict. If set to None then we simply do self.outDict.update(parsedDict) for each section.
+		self.finalStepsFunctions = list()
 
 	def getOutDictFromFileAsList(self, fileAsList):
 		try:
@@ -122,34 +127,40 @@ class CpoutFileParser():
 		return outDict
 
 	def _getOutDictFromFileAsList(self, fileAsList):
-		outDict = self._getInitCp2kOutDict()
+		self.outDict = self._getInitCp2kOutDict() #Attach to class so we can access it with hook functions
 		lineIdx=0
 
 		while lineIdx < len(fileAsList):
 			currLine = fileAsList[lineIdx].strip()
 			if currLine.find("CELL|") != -1:
-				outDict["unitCell"], lineIdx = parseCellSectionCpout(fileAsList,lineIdx)
+				self.outDict["unitCell"], lineIdx = parseCellSectionCpout(fileAsList,lineIdx)
 			elif currLine.find("Number of atoms:") != -1:
-				outDict["numbAtoms"] += int( currLine.split()[-1]  ) 
+				self.outDict["numbAtoms"] += int( currLine.split()[-1]  ) 
 				lineIdx += 1
 			elif currLine.find("PROGRAM STARTED AT") !=-1: #Reset certain counters every time we find a new start of file
-				outDict = self._getInitCp2kOutDict()
+				self.outDict = self._getInitCp2kOutDict()
 				lineIdx += 1
 			elif currLine.find("OPTIMIZATION STEP") != -1:
-				outDict["multiple_geom_present"] = True
+				self.outDict["multiple_geom_present"] = True
 				lineIdx += 1
 			elif currLine.find("PROGRAM ENDED") != -1:
-				outDict["terminate_flag_found"] = True
+				self.outDict["terminate_flag_found"] = True
 				lineIdx += 1
 			elif self._patternInExtraSingleLinePatterns(currLine):
-				lineIdx = self._updateDictBasedOnFindingSingleLinePatterns(fileAsList, lineIdx, outDict)
+				lineIdx = self._updateDictBasedOnFindingSingleLinePatterns(fileAsList, lineIdx, self.outDict)
 			else:
 				lineIdx +=1
 
-		if outDict["terminate_flag_found"] is False:
+		if self.outDict["terminate_flag_found"] is False:
 			raise ValueError("Termination flag not found in current cp2k output file")
+
+		self._applyFinalStepsFunctions()
 	
-		return outDict
+		return self.outDict
+
+	def _applyFinalStepsFunctions(self):
+		for funct in self.finalStepsFunctions:
+			funct(self)
 
 	def _patternInExtraSingleLinePatterns(self, currLine):
 		for x in self.extraSingleLinePatterns:
@@ -157,13 +168,17 @@ class CpoutFileParser():
 				return True
 		return False
 
+	#TODO: Add the ability to change the update function from outside (needed for getting lists)
 	#Should work with multiple parse-functions on the same input pattern; though unlikely that would ever be a good idea (and returned lineIdx will just be that of the LAST matching pattern)
 	def _updateDictBasedOnFindingSingleLinePatterns(self, fileAsList, lineIdx, inpDict):
 		outLineIdx = lineIdx
-		for funct,pattern in it.zip_longest(self.extraFunctsToParseFromSingleLine,self.extraSingleLinePatterns):
+		for funct,pattern,handleFunct in it.zip_longest(self.extraFunctsToParseFromSingleLine,self.extraSingleLinePatterns, self.extraHandleParsedOutputFuncts):
 			if fileAsList[lineIdx].find(pattern) != -1:
 				updateDict, outLineIdx = funct(fileAsList, lineIdx)
-				inpDict.update(updateDict)
+				if handleFunct is None:
+					inpDict.update(updateDict)
+				else:
+					handleFunct(self, updateDict)
 		return outLineIdx
 
 
@@ -323,11 +338,19 @@ def _parseTimingSection(fileAsList, lineIdx):
 	outDict = dict()
 	endStr = "The number of warnings"
 	timingDict = dict()
+	subroutineTotals = dict()
 	while (endStr not in fileAsList[lineIdx]) and (lineIdx<len(fileAsList)):
 		if "CP2K  " in fileAsList[lineIdx]:
 			timingDict["CP2K_total"] = float(fileAsList[lineIdx].strip().split()[-1])
+		if "-" not in fileAsList[lineIdx]:
+			line = fileAsList[lineIdx]
+			if ("SUBROUTINE" not in line) and ("MAXIMUM" not in line) and (line.strip()!=""):
+				currKey = line.strip().split()[0]
+				currVal = float(line.strip().split()[-1])
+				subroutineTotals[currKey] = currVal 
 		lineIdx+=1
 
+	timingDict["subroutineTotals"] = subroutineTotals
 	outDict["timings"] = types.SimpleNamespace(**timingDict)
 
 	return outDict, lineIdx-1
