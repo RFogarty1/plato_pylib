@@ -447,6 +447,43 @@ class TestParseExtraEnergiesSection(unittest.TestCase):
 		self.assertAlmostEqual(expEnergy, actEnergy)
 		self.assertAlmostEqual(expDispersion,actDispersion)
 
+
+class TestGetVersionAndCompilationInfo(unittest.TestCase):
+
+	def setUp(self):
+		self.createTestObjs()
+
+	def createTestObjs(self):
+		self.fileAsListA = self._loadSectionAStr().split("\n")
+		self.startIdxA = 0
+
+	def _loadSectionAStr(self):
+		outStr = """ CP2K| version string:                                          CP2K version 6.1
+ CP2K| source code revision number:                                    svn:18464
+ CP2K| cp2kflags: libint fftw3 parallel mpi3 scalapack has_no_shared_glibc max_c
+ CP2K|            ontr=4 mkl
+ CP2K| is freely available from                            https://www.cp2k.org/
+ CP2K| Program compiled at                          Thu 12 Jul 13:52:12 BST 2018
+ CP2K| Program compiled on                                  build-2.hpc.ic.ac.uk
+ CP2K| Program compiled for                                   Linux-x86-64-intel
+ CP2K| Data directory path                                   /tmp/cp2k/cp2k/data
+ CP2K| Input file name                                    Mg_spd_1z_template.inp
+ 
+		"""
+		return outStr
+
+	def testExpectedDictA(self):
+
+		expDict = {"version_string": "CP2K version 6.1",
+		           "cp2kflags": "libint fftw3 parallel mpi3 scalapack has_no_shared_glibc max_contr=4 mkl",
+		           "source_code_number":"svn:18464"}
+		expEndIdx = 4
+		outDict, actEndIdx = tCode._parseCompileInfoSection(self.fileAsListA, self.startIdxA)
+		actDict = outDict["cp2k_compile_info"]
+		self.assertEqual(expEndIdx,actEndIdx)
+		self.assertEqual(expDict, actDict)  
+
+
 #File contains mock results of two optimisations; of which only the second are of interest really
 def getGeomOptXyzFileStrA():
 	fileStr = """

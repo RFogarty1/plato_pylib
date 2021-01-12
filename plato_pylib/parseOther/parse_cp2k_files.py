@@ -75,6 +75,7 @@ def _getStandardCpoutParser():
 	_addSearchWordAndFunctToParserObj("Core Hamiltonian energy", _parseEnergiesSection, outParser)
 	_addSearchWordAndFunctToParserObj("T I M I N G", _parseTimingSection, outParser)
 	_addSearchWordAndFunctToParserObj("Total number of message passing", _parseNumbProcsSection, outParser)
+	_addSearchWordAndFunctToParserObj("CP2K| version string", _parseCompileInfoSection, outParser)
 	return outParser
 
 def _getFileAsListFromInpFile(inpFile):
@@ -369,6 +370,36 @@ def _parseNumbProcsSection(fileAsList, lineIdx):
 		lineIdx +=1
 
 	return outDict, lineIdx
+
+def _parseCompileInfoSection(fileAsList, lineIdx):
+	outDict = dict()
+	endStr = "is freely available from"
+
+	while (endStr not in fileAsList[lineIdx]) and (lineIdx<len(fileAsList)):
+		currLine = fileAsList[lineIdx]
+		if "CP2K| version string:" in currLine:
+			outDict["version_string"] = currLine.replace("CP2K| version string:","").strip()
+		if "CP2K| source code revision number:" in currLine:
+			outDict["source_code_number"] = currLine.replace("CP2K| source code revision number:","").strip()
+		if "CP2K| cp2kflags:" in currLine:
+			tempDict, lineIdx = _parseCp2kCompileFlags(fileAsList, lineIdx)
+			outDict.update(tempDict)
+		lineIdx += 1
+
+	return {"cp2k_compile_info":outDict}, lineIdx
+
+def _parseCp2kCompileFlags(fileAsList, lineIdx):
+	outStr = ""
+	endStr = "is freely available from"
+
+	startIdx = fileAsList[lineIdx].find("CP2K| cp2kflags: ") + len("CP2K| cp2kflags: ")
+
+	while (endStr not in fileAsList[lineIdx]) and (lineIdx<len(fileAsList)):
+		outStr += fileAsList[lineIdx][startIdx:].strip("\n")
+		lineIdx += 1
+		
+
+	return {"cp2kflags":outStr},lineIdx-1
 
 def parseXyzFromGeomOpt(inpFile):
 	outFileStr = _getFileStrFromInpFile(inpFile)
