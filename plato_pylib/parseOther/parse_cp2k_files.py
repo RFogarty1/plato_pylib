@@ -152,10 +152,12 @@ class CpoutFileParser():
 			else:
 				lineIdx +=1
 
+
+		self._applyFinalStepsFunctions()
+
 		if self.outDict["terminate_flag_found"] is False:
 			raise ValueError("Termination flag not found in current cp2k output file")
 
-		self._applyFinalStepsFunctions()
 	
 		return self.outDict
 
