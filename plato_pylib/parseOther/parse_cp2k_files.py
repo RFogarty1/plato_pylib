@@ -76,6 +76,8 @@ def _getStandardCpoutParser():
 	_addSearchWordAndFunctToParserObj("T I M I N G", _parseTimingSection, outParser)
 	_addSearchWordAndFunctToParserObj("Total number of message passing", _parseNumbProcsSection, outParser)
 	_addSearchWordAndFunctToParserObj("CP2K| version string", _parseCompileInfoSection, outParser)
+	_addSearchWordAndFunctToParserObj("BSSE CALCULATION", _parseBSSEFragmentsInfo, outParser, handleParsedDictFunct=_handleParsedBSSEFragsInfo)
+	outParser.finalStepsFunctions.append(_parseBSSEFragmentsFinalStepFunct)
 	return outParser
 
 def _getFileAsListFromInpFile(inpFile):
@@ -297,6 +299,8 @@ def _parseOverlapCondSection(fileAsList, lineIdx):
 
 	return outDict,lineIdx-1
 
+
+#This is the RESULTS section, which comes last
 def _parseBSSESection(fileAsList, lineIdx):
 	outDict = dict()
 	outDict["bsse"] = None
@@ -315,6 +319,46 @@ def _parseBSSESection(fileAsList, lineIdx):
 		outDict["bsse"] = outObj
 
 	return outDict, lineIdx-1
+
+def _handleParsedBSSEFragsInfo(parserInstance, outDict):
+	if parserInstance.outDict.get("bsse_fragments",None) is None:
+		parserInstance.outDict["bsse_fragments"] = list()
+
+	parserInstance.outDict["bsse_fragments"].append(outDict)
+	if parserInstance.outDict.get("energies",None) is not None:
+		parserInstance.outDict["bsse_fragments"][-2]["energies"] = parserInstance.outDict["energies"]
+
+
+def _parseBSSEFragmentsInfo(fileAsList, lineIdx):
+	outDict = dict()
+	endStr = "-----------------------------"
+	while (endStr not in fileAsList[lineIdx]) and (lineIdx<len(fileAsList)):
+		currLine = fileAsList[lineIdx]
+		if "FRAGMENT CONF:" in currLine:
+			outDict["conf"] = currLine.strip().split()[5]
+			outDict["frag_sub_conf"] = currLine.strip().split()[8]
+		elif "CHARGE" in currLine:
+			outDict["charge"] = int( currLine.strip().split()[3] )
+			outDict["multiplicity"] = int( currLine.strip().split()[6] )
+		elif "ATOM INDEX" in currLine:
+			lineIdx += 2
+			atomIndices, atomKinds = list(), list()
+			while (endStr not in fileAsList[lineIdx]) and (lineIdx<len(fileAsList)):
+				currLine = fileAsList[lineIdx]
+				atomIndices.append( int(currLine.strip().split()[1]) )
+				atomKinds.append( currLine.strip().split()[-2] )
+				lineIdx+=1
+			break
+
+		lineIdx += 1
+
+	outDict["indices"], outDict["kinds"] = atomIndices, atomKinds
+
+	return outDict, lineIdx
+
+def _parseBSSEFragmentsFinalStepFunct(parserInstance):
+	if parserInstance.outDict.get("bsse_fragments",None) is not None:
+		parserInstance.outDict["bsse_fragments"][-1]["energies"] = parserInstance.outDict["energies"]
 
 
 def _parseEnergiesSection(fileAsList, lineIdx):
