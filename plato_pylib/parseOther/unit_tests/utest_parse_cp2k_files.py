@@ -351,6 +351,57 @@ class TestParseNumbProcsSection(unittest.TestCase):
 		self.assertEqual(expDict, actDict)
 
 
+class TestParseHirshfeldChargesSection(unittest.TestCase):
+
+	def setUp(self):
+		self.createTestObjs()
+
+	def createTestObjs(self):
+		self.sectionA = self._loadTestSectionA()
+		self.startIdxA = 3
+		self.fileAsListA = self.sectionA.split("\n")
+
+	def _loadTestSectionA(self):
+		return """
+ !-----------------------------------------------------------------------------!
+                           Hirshfeld Charges
+
+  #Atom  Element  Kind  Ref Charge     Population                    Net charge
+      1       O      1       6.000          7.115                        -1.115
+      2       H      2       1.000          0.439                         0.561
+      3       H      2       1.000          0.439                         0.561
+
+  Total Charge                                                            0.007
+ !-----------------------------------------------------------------------------!
+ """
+
+	def testExpectedFromSimpleCaseA(self):
+		expEndIdx = 10
+		expChargeDict = {"charges":[-1.115, 0.561, 0.561], "total":0.007}
+		actDict, actEndIdx = tCode._parseHirshfeldChargesSection(self.fileAsListA, self.startIdxA)
+		self.assertEqual(expEndIdx, actEndIdx)
+		self._checkExpAndActChargeDictsMatch(expChargeDict, actDict)
+
+	def _checkExpAndActChargeDictsMatch(self, expDict, actDict):
+		numbListAttrs = ["charges"]
+		numbAttrs = ["total"]
+
+		for key in numbListAttrs:
+			for exp,act in itertools.zip_longest(expDict[key], actDict[key]):
+				self.assertAlmostEqual(exp,act)
+
+		for key in numbAttrs:
+			self.assertAlmostEqual( expDict[key], actDict[key] )
+
+	def testHandleChargesInfo(self):
+		parserInstance = mock.Mock()
+		parserInstance.outDict = dict()
+		expChargeDict =  {"charges":[-1.115, 0.561, 0.561], "total":0.007}
+		tCode._handleHirshfeldChargesInfo(parserInstance, expChargeDict)
+		actOutDict = parserInstance.outDict
+		self._checkExpAndActChargeDictsMatch( expChargeDict, actOutDict["hirshfeld_charges_final"] )
+
+
 class TestParseCP2kGeomOutputXyzFiles(unittest.TestCase):
 
 	def setUp(self):

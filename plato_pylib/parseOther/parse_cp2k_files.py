@@ -59,9 +59,16 @@ def _getCoordsFromPyCp2kObj(pyCp2kObj):
 		outCoords.append(currCoord)
 	return scaled,outCoords
 
-def parseCpout(outFile):
+def parseCpout(outFile, ThrowIfTerminateFlagMissing=True):
 	fileAsList = _getFileAsListFromInpFile(outFile)
 	parser = _getStandardCpoutParser()
+
+	#TODO: Some way to maintain the ACTUAL terminate flag may be nice
+	if ThrowIfTerminateFlagMissing is False:
+		def _finalSetTerminateFlagToTrue(instance):
+			instance.outDict["terminate_flag_found"] = True
+		parser.finalStepsFunctions.append(_finalSetTerminateFlagToTrue)
+
 	try:
 		outDict = parser.getOutDictFromFileAsList(fileAsList)
 	except Exception as e:
@@ -77,6 +84,7 @@ def _getStandardCpoutParser():
 	_addSearchWordAndFunctToParserObj("Total number of message passing", _parseNumbProcsSection, outParser)
 	_addSearchWordAndFunctToParserObj("CP2K| version string", _parseCompileInfoSection, outParser)
 	_addSearchWordAndFunctToParserObj("BSSE CALCULATION", _parseBSSEFragmentsInfo, outParser, handleParsedDictFunct=_handleParsedBSSEFragsInfo)
+	_addSearchWordAndFunctToParserObj("Hirshfeld Charges", _parseHirshfeldChargesSection, outParser, handleParsedDictFunct=_handleHirshfeldChargesInfo)
 	outParser.finalStepsFunctions.append(_parseBSSEFragmentsFinalStepFunct)
 	return outParser
 
@@ -416,6 +424,37 @@ def _parseNumbProcsSection(fileAsList, lineIdx):
 		lineIdx +=1
 
 	return outDict, lineIdx
+
+
+#NOTE: This probably works for ALL charges
+def _parseHirshfeldChargesSection(fileAsList, lineIdx):
+	outDict = dict()
+	endStr = "!-----"
+	lineIdx += 1
+
+	outCharges = list()
+	while (endStr not in fileAsList[lineIdx]) and (lineIdx<len(fileAsList)):
+		currLine = fileAsList[lineIdx]
+		if currLine.strip() == "":
+			pass
+		elif "Atom" in currLine:
+			pass
+		elif "Total Charge" in currLine:
+			outDict["total"] = float( currLine.strip().split()[-1] )
+		else:
+			currCharge = float( currLine.strip().split()[-1] )
+			outCharges.append(currCharge)
+
+		lineIdx += 1
+
+	outDict["charges"] = outCharges
+
+	return outDict, lineIdx
+
+
+def _handleHirshfeldChargesInfo(parserInstance, outDict):
+	parserInstance.outDict["hirshfeld_charges_final"] = outDict
+
 
 def _parseCompileInfoSection(fileAsList, lineIdx):
 	outDict = dict()
