@@ -468,6 +468,8 @@ def getFractCoordsFromCartCoords(lattVects, cartCoords):
 
 	return outList
 
+
+
 def _getFractCoordsFromCartOneAtom(lattVects:"3x3 iterxiter", cartCoords:"3 item list"):
 	vMatrix = np.array(lattVects).transpose()
 
@@ -514,6 +516,30 @@ def foldAtomicPositionsIntoCell(cellObj, tolerance=1e-2):
 				startFractCoords[idxA][idxB] += shiftVal
 
 	cellObj.fractCoords = startFractCoords
+
+def applyTranslationVectorToFractionalCoords(inpCell, tVect, foldInAfter=False):
+	""" Applies a translation vector (given in terms of fractional co-ordinates) to all atoms in the cell
+	
+	Args:
+		inpCell: (UnitCell object) The cell we want to apply the translation to
+		tVect: (len-3 iter) Translation (in fractional co-ordinates) for x,y,z
+		foldInAfter: (Bool) If true fold all atomic positions back into cell after applying the transformation (so all output fractional co-ords are between 0 and 1)
+
+	Returns
+		Nothing. Acts in place.
+ 
+	"""
+	startFractCoords = inpCell.fractCoords
+
+	outFractCoords = list()
+	for fCoord in startFractCoords:
+		currCoord = [x+t for x,t in it.zip_longest(fCoord[:3],tVect)] + [fCoord[-1]]
+		outFractCoords.append(currCoord)
+
+	inpCell.fractCoords = outFractCoords	
+
+	if foldInAfter:
+		foldAtomicPositionsIntoCell(inpCell)
 
 
 def getDensityFromUCellObj(uCellObj, massDict=None, lenConvFactor=1):

@@ -407,7 +407,56 @@ class TestGetDensityFromUCellObj(unittest.TestCase):
 		actVal = tCode.getDensityFromUCellObj(self.testCellA, massDict=self.massDict, lenConvFactor=1)
 		self.assertAlmostEqual(expVal,actVal)
 
+class TestApplyTranslationVector(unittest.TestCase):
+
+	def setUp(self):
+		self.lattParams, self.lattAngles = [10,10,10], [90,90,90]
+		self.fractCoords = [ [0.9,0.8,0.7,"X"],
+		                     [0.5,0.4,0.3,"Y"],
+		                     [0.3,0.2,0.1,"Z"] ]
+		self.foldInAfter = False
+		self.tVect = [-0.5,-0.1,-0.2]
+		self.createTestObjs()
+
+	def createTestObjs(self):
+		self.geomA = tCode.UnitCell(lattParams=self.lattParams, lattAngles=self.lattAngles)
+		self.geomA.fractCoords = self.fractCoords
+
+	def _runTestFunct(self):
+		tCode.applyTranslationVectorToFractionalCoords(self.geomA, self.tVect, foldInAfter=self.foldInAfter)
+
+	def testForSimpleCaseA(self):
+		expFractCoords = [ [ 0.4,  0.7,  0.5, "X"],
+		                   [ 0.0,  0.3,  0.1, "Y"],
+		                   [-0.2,  0.1, -0.1, "Z"] ]
+		self._runTestFunct()
+		actFractCoords = self.geomA.fractCoords
+		self.checkExpAndActFractCoordsMatch(expFractCoords,actFractCoords)
+
+	def testFoldInAfterCaseA(self):
+		self.foldInAfter = True
+		expFractCoords = [ [ 0.4,  0.7,  0.5, "X"],
+		                   [ 0.0,  0.3,  0.1, "Y"],
+		                   [ 0.8,  0.1,  0.9, "Z"] ]
+
+		self.foldInAfter = True
+		self._runTestFunct()
+		actFractCoords = self.geomA.fractCoords
+		self.checkExpAndActFractCoordsMatch(expFractCoords, actFractCoords)
+
+	def checkExpAndActFractCoordsMatch(self, expCoords, actCoords):
+		expGeom, actGeom = copy.deepcopy(self.geomA), copy.deepcopy(self.geomA)
+		expGeom.fractCoords = expCoords
+		actGeom.fractCoords = actCoords
+		self.assertEqual(expGeom,actGeom)
+
 
 if __name__ == '__main__':
 	unittest.main()
+
+
+
+
+
+
 
