@@ -85,6 +85,7 @@ def _getStandardCpoutParser():
 	_addSearchWordAndFunctToParserObj("CP2K| version string", _parseCompileInfoSection, outParser)
 	_addSearchWordAndFunctToParserObj("BSSE CALCULATION", _parseBSSEFragmentsInfo, outParser, handleParsedDictFunct=_handleParsedBSSEFragsInfo)
 	_addSearchWordAndFunctToParserObj("Hirshfeld Charges", _parseHirshfeldChargesSection, outParser, handleParsedDictFunct=_handleHirshfeldChargesInfo)
+	_addSearchWordAndFunctToParserObj("ATOMIC FORCES in [a.u.]", _parseAtomicForcesSection, outParser, handleParsedDictFunct=_handleAtomicForcesSection)
 	outParser.finalStepsFunctions.append(_parseBSSEFragmentsFinalStepFunct)
 	return outParser
 
@@ -454,6 +455,28 @@ def _parseHirshfeldChargesSection(fileAsList, lineIdx):
 
 def _handleHirshfeldChargesInfo(parserInstance, outDict):
 	parserInstance.outDict["hirshfeld_charges_final"] = outDict
+
+
+def _parseAtomicForcesSection(fileAsList, lineIdx):
+	outDict = dict()
+	endStr = "SUM OF ATOMIC FORCES"
+	lineIdx+=3
+
+	outForces = list()
+	while (lineIdx<len(fileAsList)) and (endStr not in fileAsList[lineIdx]):
+		currLine = fileAsList[lineIdx]
+		splitLine = currLine.strip().split()
+		currVals = [float(x) for x in splitLine[-3:]]
+		outForces.append(currVals)
+		lineIdx+=1
+
+	outDict["forces"] = outForces
+
+	return outDict, lineIdx
+
+
+def _handleAtomicForcesSection(parserInstance, outDict):
+	parserInstance.outDict["forces_final"] = outDict["forces"]
 
 
 def _parseCompileInfoSection(fileAsList, lineIdx):

@@ -524,7 +524,6 @@ class TestGetVersionAndCompilationInfo(unittest.TestCase):
 		return outStr
 
 	def testExpectedDictA(self):
-
 		expDict = {"version_string": "CP2K version 6.1",
 		           "cp2kflags": "libint fftw3 parallel mpi3 scalapack has_no_shared_glibc max_contr=4 mkl",
 		           "source_code_number":"svn:18464"}
@@ -533,6 +532,51 @@ class TestGetVersionAndCompilationInfo(unittest.TestCase):
 		actDict = outDict["cp2k_compile_info"]
 		self.assertEqual(expEndIdx,actEndIdx)
 		self.assertEqual(expDict, actDict)  
+
+class TestParseForcesSection(unittest.TestCase):
+
+	def setUp(self):
+		self.createTestObjs()
+
+	def createTestObjs(self):
+		self.fileAsListA = self._loadSectionAStr().split("\n")
+		self.startIdxA = 3
+
+	def _loadSectionAStr(self):
+		outStr = """ ENERGY| Total FORCE_EVAL ( QS ) energy (a.u.):               -1.988512016628202
+
+
+ ATOMIC FORCES in [a.u.]
+
+ # Atom   Kind   Element          X              Y              Z
+      1      1      Mg         -2.40000000     1.20000000    -4.20000000
+      2      1      Mg          3.00000000    -0.00000000     0.00000000
+ SUM OF ATOMIC FORCES           1.00000000    -0.00000000     0.00000000     1.00000000
+
+ MD_ENERGIES| Initialization proceeding"""
+		return outStr
+
+	def testExpectedDictA(self):
+		expEndIdx = 8
+		expForces = [ [-2.4,1.2,-4.2], [3.0,0,0] ]
+		actDict, actEndIdx = tCode._parseAtomicForcesSection(self.fileAsListA, self.startIdxA)
+		actForces = actDict["forces"]
+		self.assertEqual(expEndIdx,actEndIdx)
+		self._checkExpAndActForcesEqual(expForces, actForces)
+
+	def testHandleAtomicForcesOutDict(self):
+		mockParser = mock.Mock()
+		mockParser.outDict = dict()
+		expForces = [ [-2.4,1.2,-4.2], [3.0,0,0] ]
+		mockOutDict = {"forces":expForces}
+		tCode._handleAtomicForcesSection(mockParser, mockOutDict)
+		actOutDict = mockParser.outDict
+		actForces = mockParser.outDict["forces_final"]
+		self._checkExpAndActForcesEqual(expForces, actForces)
+
+	def _checkExpAndActForcesEqual(self, expForces, actForces):
+		for exp,act in itertools.zip_longest(expForces,actForces):
+			[self.assertAlmostEqual(e,a) for e,a in itertools.zip_longest(exp,act)]
 
 
 #File contains mock results of two optimisations; of which only the second are of interest really
