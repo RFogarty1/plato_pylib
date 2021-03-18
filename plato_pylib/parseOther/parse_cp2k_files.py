@@ -509,18 +509,31 @@ def _parseCp2kCompileFlags(fileAsList, lineIdx):
 
 	return {"cp2kflags":outStr},lineIdx-1
 
-def parseXyzFromGeomOpt(inpFile):
+def parseXyzFromGeomOpt(inpFile, startGeomIdx=1):
+	""" Description of function
+	
+	Args:
+		inpFile: Path to xyz file
+		startGeomIdx: (int, optional) The index which denotes the FIRST step in a geometry optimisation. This is 1 for geo_opt but 0 in nudged elastic band calculations. The list of out geoms resets when this index is found (such that we ONLY parse results from the most recent optimisation contained in the file)
+			 
+	Returns
+		outDict: Contains "all_geoms" key which contains a list of geometries
+ 
+	Raises:
+		 Errors
+	"""
 	outFileStr = _getFileStrFromInpFile(inpFile)
 	fileAsList = [x for x in outFileStr.split("\n") if x.strip()!='']
 
 	#Step 1 is to split the file up into individual strings for an xyz parser
 	lineIdx = 0
+	startLines, endLines = list(), list()
 	while lineIdx < len(fileAsList):
 		nAtomsLine, commentLine = fileAsList[lineIdx], fileAsList[lineIdx+1]
 		commentLine = commentLine.replace(","," ")
 		nAtoms = int( nAtomsLine.strip() )
 		geomIdx = int(commentLine.strip().split()[2])
-		if (geomIdx==1): #This means we only take geometries from the current job; not previous jobs of the same name
+		if (geomIdx==startGeomIdx): #This means we only take geometries from the current job; not previous jobs of the same name
 			startLines, endLines = list(), list()
 
 		startLines.append(lineIdx)
