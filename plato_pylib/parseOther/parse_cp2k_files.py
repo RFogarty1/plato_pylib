@@ -85,6 +85,7 @@ def _getStandardCpoutParser():
 	_addSearchWordAndFunctToParserObj("CP2K| version string", _parseCompileInfoSection, outParser)
 	_addSearchWordAndFunctToParserObj("BSSE CALCULATION", _parseBSSEFragmentsInfo, outParser, handleParsedDictFunct=_handleParsedBSSEFragsInfo)
 	_addSearchWordAndFunctToParserObj("Hirshfeld Charges", _parseHirshfeldChargesSection, outParser, handleParsedDictFunct=_handleHirshfeldChargesInfo)
+	_addSearchWordAndFunctToParserObj("Mulliken Population Analysis", _parseHirshfeldChargesSection, outParser, handleParsedDictFunct=_handleMullikenChargesInfo)
 	_addSearchWordAndFunctToParserObj("ATOMIC FORCES in [a.u.]", _parseAtomicForcesSection, outParser, handleParsedDictFunct=_handleAtomicForcesSection)
 	outParser.finalStepsFunctions.append(_parseBSSEFragmentsFinalStepFunct)
 	return outParser
@@ -440,7 +441,7 @@ def _parseHirshfeldChargesSection(fileAsList, lineIdx):
 			pass
 		elif "Atom" in currLine:
 			pass
-		elif "Total Charge" in currLine:
+		elif "Total Charge".lower() in currLine.lower():
 			outDict["total"] = float( currLine.strip().split()[-1] )
 		else:
 			currCharge = float( currLine.strip().split()[-1] )
@@ -455,6 +456,9 @@ def _parseHirshfeldChargesSection(fileAsList, lineIdx):
 
 def _handleHirshfeldChargesInfo(parserInstance, outDict):
 	parserInstance.outDict["hirshfeld_charges_final"] = outDict
+
+def _handleMullikenChargesInfo(parserInstance, outDict):
+	parserInstance.outDict["mulliken_charges_final"] = outDict
 
 
 def _parseAtomicForcesSection(fileAsList, lineIdx):

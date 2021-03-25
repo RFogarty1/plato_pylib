@@ -351,7 +351,7 @@ class TestParseNumbProcsSection(unittest.TestCase):
 		self.assertEqual(expDict, actDict)
 
 
-class TestParseHirshfeldChargesSection(unittest.TestCase):
+class TestParseHirshfeldOrMullikenChargesSection(unittest.TestCase):
 
 	def setUp(self):
 		self.createTestObjs()
@@ -360,6 +360,10 @@ class TestParseHirshfeldChargesSection(unittest.TestCase):
 		self.sectionA = self._loadTestSectionA()
 		self.startIdxA = 3
 		self.fileAsListA = self.sectionA.split("\n")
+
+		self.sectionMulliken = self._loadTestSectionMullikenA()
+		self.startIdxMulliken = 3
+		self.fileAsListMulliken = self.sectionMulliken.split("\n")
 
 	def _loadTestSectionA(self):
 		return """
@@ -374,6 +378,20 @@ class TestParseHirshfeldChargesSection(unittest.TestCase):
   Total Charge                                                            0.007
  !-----------------------------------------------------------------------------!
  """
+
+	def _loadTestSectionMullikenA(self):
+		return """
+ !-----------------------------------------------------------------------------!
+                     Mulliken Population Analysis
+
+ #  Atom  Element  Kind  Atomic population                           Net charge
+       1     O        1          6.443303                             -0.443303
+       2     H        2          0.778348                              0.221652
+       3     H        2          0.778348                              0.221652
+ # Total charge                              8.000000                 -0.000000
+
+ !-----------------------------------------------------------------------------!
+"""
 
 	def testExpectedFromSimpleCaseA(self):
 		expEndIdx = 10
@@ -400,6 +418,13 @@ class TestParseHirshfeldChargesSection(unittest.TestCase):
 		tCode._handleHirshfeldChargesInfo(parserInstance, expChargeDict)
 		actOutDict = parserInstance.outDict
 		self._checkExpAndActChargeDictsMatch( expChargeDict, actOutDict["hirshfeld_charges_final"] )
+
+	def testParserAlsoWorksForMulliken(self):
+		expEndIdx = 10
+		expChargeDict = {"charges": [-0.443303, 0.221652, 0.221652], "total":0}
+		actDict, actEndIdx = tCode._parseHirshfeldChargesSection(self.fileAsListMulliken, self.startIdxMulliken)
+		self.assertEqual(expEndIdx, actEndIdx)
+		self._checkExpAndActChargeDictsMatch(expChargeDict, actDict)
 
 
 class TestParseCP2kGeomOutputXyzFiles(unittest.TestCase):
