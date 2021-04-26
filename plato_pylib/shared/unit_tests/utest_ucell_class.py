@@ -407,6 +407,7 @@ class TestGetDensityFromUCellObj(unittest.TestCase):
 		actVal = tCode.getDensityFromUCellObj(self.testCellA, massDict=self.massDict, lenConvFactor=1)
 		self.assertAlmostEqual(expVal,actVal)
 
+
 class TestApplyTranslationVector(unittest.TestCase):
 
 	def setUp(self):
@@ -449,6 +450,44 @@ class TestApplyTranslationVector(unittest.TestCase):
 		expGeom.fractCoords = expCoords
 		actGeom.fractCoords = actCoords
 		self.assertEqual(expGeom,actGeom)
+
+class TestApplyTransVectorToCartCoords(unittest.TestCase):
+
+	def setUp(self):
+		self.lattParams, self.lattAngles = [10,10,10], [90,90,90]
+		self.cartCoords  = [ [1, 2, 7, "X"],
+		                     [3, 3, 3, "Y"],
+		                     [7, 6, 1, "Z"] ]
+		self.foldInAfter = False
+		self.tVect = [2,3,-4]
+		self.createTestObjs()
+
+	def createTestObjs(self):
+		self.geomA = tCode.UnitCell(lattParams=self.lattParams, lattAngles=self.lattAngles)
+		self.geomA.cartCoords = self.cartCoords
+
+	def _runTestFunct(self):
+		tCode.applyTranslationVectorToCartCoords(self.geomA, self.tVect, foldInAfter=self.foldInAfter)
+
+	def testForSimpleCaseA(self):
+		expCartCoords = [ [3,  5,  3, "X"],
+		                  [5,  6, -1, "Y"],
+		                  [9,  9, -3, "Z"] ]
+		self._runTestFunct()
+		self.checkExpAndActCoordsMatch(expCartCoords, self.geomA.cartCoords)
+
+	def testForFoldInAfterCaseA(self):
+		expCartCoords = [ [3,  5,  3, "X"],
+		                  [5,  6,  9, "Y"],
+		                  [9,  9,  7, "Z"] ]
+		self.foldInAfter = True
+		self._runTestFunct()
+		self.checkExpAndActCoordsMatch(expCartCoords, self.geomA.cartCoords)
+
+	def checkExpAndActCoordsMatch(self, expCoords, actCoords):
+		expGeom, actGeom = copy.deepcopy(self.geomA), copy.deepcopy(self.geomA)
+		expGeom.cartCoords, actGeom.cartCoords = expCoords, actCoords
+		self.assertEqual(expGeom, actGeom)
 
 
 if __name__ == '__main__':

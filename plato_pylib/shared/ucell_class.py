@@ -541,6 +541,28 @@ def applyTranslationVectorToFractionalCoords(inpCell, tVect, foldInAfter=False):
 	if foldInAfter:
 		foldAtomicPositionsIntoCell(inpCell)
 
+def applyTranslationVectorToCartCoords(inpCell, tVect, foldInAfter=False):
+	""" Applies a translation vector (given in terms of cartesian co-ordinates) to all atoms in the cell
+	
+	Args:
+		inpCell: (UnitCell object) The cell we want to apply the translation to
+		tVect: (len-3 iter) Translation (in cartesian co-ordinates) for x,y,z
+		foldInAfter: (Bool) If true fold all atomic positions back into cell after applying the transformation (so all output fractional co-ords are between 0 and 1)
+
+	Returns
+		Nothing. Acts in place.
+ 
+	"""
+	startCartCoords = inpCell.cartCoords
+	outCartCoords = list()
+	for cCoord in startCartCoords:
+		currCoord = [x+t for x,t in it.zip_longest(cCoord[:3],tVect)] + [cCoord[-1]]
+		outCartCoords.append( currCoord )
+	
+	inpCell.cartCoords = outCartCoords
+
+	if foldInAfter:
+		foldAtomicPositionsIntoCell(inpCell)
 
 def getDensityFromUCellObj(uCellObj, massDict=None, lenConvFactor=1):
 	""" Calculate the density in units of g/length**3 for a UnitCell object. If you want different mass units, then passing your own massDict is a way to do it
