@@ -490,6 +490,39 @@ class TestApplyTransVectorToCartCoords(unittest.TestCase):
 		self.assertEqual(expGeom, actGeom)
 
 
+class TestMoveIndicesToTopOfGeom(unittest.TestCase):
+
+	def setUp(self):
+		self.lattParams, self.lattAngles = [10,10,10], [90,90,90]
+		self.coordsA = [ [2,3,4,"A"],
+		                 [5,6,7,"B"],
+		                 [8,9,1,"C"],
+		                 [3,4,5,"D"] ]
+		self.indices = [2,1]
+		self.createTestObjs()
+
+	def createTestObjs(self):
+		self.geomA = tCode.UnitCell(lattParams=self.lattParams, lattAngles=self.lattAngles)
+		self.geomA.cartCoords = self.coordsA
+
+	def _runTestFunct(self):
+		tCode.moveIndicesToTopOfGeomForUnitCell(self.geomA, self.indices)
+
+	def testMoveMiddleTwoToTop(self):
+		expCoords = [ [8,9,1,"C"],
+		              [5,6,7,"B"],
+		              [2,3,4,"A"],
+		              [3,4,5,"D"] ]
+		self._runTestFunct()
+		actCoords = self.geomA.cartCoords
+		self.checkExpAndActCoordsMatch(expCoords, self.geomA.cartCoords)
+
+	def checkExpAndActCoordsMatch(self, expCoords, actCoords):
+		expGeom, actGeom = copy.deepcopy(self.geomA), copy.deepcopy(self.geomA)
+		expGeom.cartCoords, actGeom.cartCoords = expCoords, actCoords
+		self.assertEqual(expGeom, actGeom)
+
+
 if __name__ == '__main__':
 	unittest.main()
 

@@ -588,6 +588,24 @@ def getDensityFromUCellObj(uCellObj, massDict=None, lenConvFactor=1):
 	return outDensity
 
 
+def moveIndicesToTopOfGeomForUnitCell(inpCell, inpIndices):
+	""" Re-arranges co-ordinates to put certain indices on top. Original use-case is putting all indices involving collective vars at the top of the geometry
+	
+	Args:
+		inpCell: (UnitCell object)
+		inpIndices: (iter of ints) Indices of atoms (base-zero) we want to move to the top of the geom coords
+			 
+	Returns
+		Nothing; works in place
+ 
+	"""
+	fCoords = inpCell.fractCoords
+
+	topCoords = [fCoords[idx] for idx in inpIndices]
+	otherCoords = [fCoords[idx] for idx in range(len(fCoords)) if idx not in inpIndices]
+	outFractCoords = topCoords + otherCoords
+	inpCell.fractCoords = outFractCoords
+
 
 #Taken from https://gist.github.com/lukasrichters14/c862644d4cbcf2d67252a484b7c6049c
 def getEleKeyToMassDictStandard():
