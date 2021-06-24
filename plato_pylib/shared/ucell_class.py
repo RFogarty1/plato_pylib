@@ -501,21 +501,48 @@ def getLattVectorsTransformedToAlignParamCWithZ(lattVectors):
 	return output
 
 def foldAtomicPositionsIntoCell(cellObj, tolerance=1e-2):
+	#This part is now the slow step (>50% of the runtime)
 	startFractCoords = cellObj.fractCoords
 	if startFractCoords is None:
 		return None
-	outCoords = list()
 
-	for idxA,currFract in enumerate(startFractCoords):
-		for idxB,x in enumerate(currFract[:3]):
-			if (x<-1*tolerance):
-				shiftVal = math.ceil(abs(x))
-				startFractCoords[idxA][idxB] += shiftVal
-			elif (x>1+tolerance):
-				shiftVal = -1* math.floor(x)
-				startFractCoords[idxA][idxB] += shiftVal
+	useFractCoords = np.array( cellObj._fractCoords ) #Avoid splitting up eles/coords
 
-	cellObj.fractCoords = startFractCoords
+	#Transform
+	foldFractCoordArrayToValsBetweenZeroAndOne(useFractCoords, tolerance=tolerance)
+
+	cellObj._fractCoords = useFractCoords
+
+	#The old, simple implementation. This is slower + less flexible than the newer numpy implementation
+#	for idxA,currFract in enumerate(startFractCoords):
+#		for idxB,x in enumerate(currFract[:3]):
+#			if (x<-1*tolerance):
+#				shiftVal = math.ceil(abs(x))
+#				startFractCoords[idxA][idxB] += shiftVal
+#			elif (x>1+tolerance):
+#				shiftVal = -1* math.floor(x)
+#				startFractCoords[idxA][idxB] += shiftVal
+
+def foldFractCoordArrayToValsBetweenZeroAndOne(fractCoords, tolerance=1e-5):
+	""" Function meant for optimisation purposees really; so foldAtomicPositionsIntoCell (and various inefficiencies associated with UnitCell class) can be bypassed
+	
+	Args:
+		fractCoords: (nx3 numpy array) Fraction Coordinates
+		tolerance: (float) We only apply a shift if the fraction coord x is -tolerance > x > 1+tolerance
+			 
+	Returns
+		Nothing; works in place	
+ 
+	"""
+	#When a value is >1 we subtract math.floor(x); else leave it
+	outArray = np.where(fractCoords>1+tolerance, fractCoords+(-1*np.floor(fractCoords)), fractCoords)
+
+	#When a value is <1 we need to add math.ceil(x); else leave it
+	outArray = np.where(outArray<-1*tolerance, outArray+np.ceil(np.abs(outArray)), outArray)
+
+	np.copyto(fractCoords,outArray)
+
+
 
 def applyTranslationVectorToFractionalCoords(inpCell, tVect, foldInAfter=False):
 	""" Applies a translation vector (given in terms of fractional co-ordinates) to all atoms in the cell
@@ -529,14 +556,31 @@ def applyTranslationVectorToFractionalCoords(inpCell, tVect, foldInAfter=False):
 		Nothing. Acts in place.
  
 	"""
-	startFractCoords = inpCell.fractCoords
+#	startFractCoords = inpCell.fractCoords
 
-	outFractCoords = list()
-	for fCoord in startFractCoords:
-		currCoord = [x+t for x,t in it.zip_longest(fCoord[:3],tVect)] + [fCoord[-1]]
-		outFractCoords.append(currCoord)
+	#Separate into np array(for fast translate) and indices (to map back)
+#	atomSymbols = [x[-1] for x in startFractCoords]
+#	useFractCoords = np.array([x[:3] for x in startFractCoords])
+#	outCoordArray = np.add(useFractCoords,np.array(tVect)) #Will add to all elements
+#
+#	outFractCoords = outCoordArray.tolist()
+#	for row, ele in it.zip_longest(outFractCoords, atomSymbols):
+#		row.append(ele)
 
-	inpCell.fractCoords = outFractCoords	
+
+
+#	outFractCoords = list()
+#	for fCoord in startFractCoords:
+#		currCoord = [x+t for x,t in it.zip_longest(fCoord[:3],tVect)] + [fCoord[-1]]
+#		outFractCoords.append(currCoord)
+
+#	inpCell.fractCoords = outFractCoords	
+
+
+	#OPTIMISED VERSION: We directly access _fractCoords and work with that, since access through the property is slow (and means we have to deal with the element symbols). This was about 4x as fast
+	useFractCoords = np.array(inpCell._fractCoords)
+	useFractCoords = np.add(useFractCoords, tVect)
+	inpCell._fractCoords = useFractCoords.tolist()
 
 	if foldInAfter:
 		foldAtomicPositionsIntoCell(inpCell)
