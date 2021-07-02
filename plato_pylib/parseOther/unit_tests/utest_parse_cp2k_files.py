@@ -503,9 +503,10 @@ class TestParseExtraEnergiesSection(unittest.TestCase):
 	def testExpectedWhenSmearingOn(self):
 		expEntropy = -0.00001257113930*tCode.HART_TO_EV
 		expEnergy = -0.87976787980010*tCode.HART_TO_EV
+		expFermiEnergy = 0.11183551444274*tCode.HART_TO_EV
 		expEndIdx = 11
 		actDict, actEndIdx = tCode._parseEnergiesSection(self.fileAsListA, self.startIdxA)
-		actEntropy, actEnergy = actDict["energies"].entropy, actDict["energies"].electronicTotalE
+		actEntropy, actEnergy, actFermiEnergy = actDict["energies"].entropy, actDict["energies"].electronicTotalE, actDict["fermi_energy"]
 		self.assertEqual(expEndIdx, actEndIdx)
 		self.assertAlmostEqual(expEntropy, actEntropy)
 		self.assertAlmostEqual(expEnergy, actEnergy)

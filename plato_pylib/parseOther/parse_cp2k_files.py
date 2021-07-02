@@ -4,14 +4,16 @@ import itertools as it
 import re
 import types
 from plato_pylib.shared.ucell_class import UnitCell
-from plato_pylib.shared.energies_class import EnergyVals 
+from plato_pylib.shared.energies_class import EnergyVals
+
+
 from . import parse_xyz_files as parseXyzHelp
 from ..shared import custom_errors as errorHelp
-
+from ..shared import unit_convs as uConvHelp
 import pycp2k
 
-RYD_TO_EV = 13.6056980659
-HART_TO_EV = 2*RYD_TO_EV
+RYD_TO_EV = uConvHelp.RYD_TO_EV
+HART_TO_EV = uConvHelp.HA_TO_EV
 
 
 def parseGeomFromCpInputFile(inpFile):
@@ -373,13 +375,16 @@ def _parseBSSEFragmentsFinalStepFunct(parserInstance):
 
 def _parseEnergiesSection(fileAsList, lineIdx):
 	outDict = dict()
-	dftTotalElectronic, dispVal, entropy = None, None, None
+	dftTotalElectronic, dispVal, entropy, fermiE = None, None, None, None
 	endStr = "Total energy:"
 	while (endStr not in fileAsList[lineIdx]) and (lineIdx<len(fileAsList)):
 		if "Electronic entropic energy" in fileAsList[lineIdx]:
 			entropy = float( fileAsList[lineIdx].split()[-1] ) * HART_TO_EV
 		if "Dispersion energy" in fileAsList[lineIdx]:
 			dispVal = float( fileAsList[lineIdx].split()[-1] ) * HART_TO_EV
+		if "Fermi energy:" in fileAsList[lineIdx]:
+			pass
+			fermiE = float( fileAsList[lineIdx].split()[-1] ) * HART_TO_EV
 		lineIdx += 1
 
 	dftTotalElectronic = float( fileAsList[lineIdx].split()[-1] ) * HART_TO_EV
@@ -387,6 +392,8 @@ def _parseEnergiesSection(fileAsList, lineIdx):
 
 	outDict["energies"] = EnergyVals(dispersion=dispVal, entropy=entropy, dftTotalElectronic=dftTotalElectronic)
 	outDict["energy"] = dftTotalElectronic
+	if fermiE is not None:
+		outDict["fermi_energy"] = fermiE
 
 	return outDict,lineIdx
 
