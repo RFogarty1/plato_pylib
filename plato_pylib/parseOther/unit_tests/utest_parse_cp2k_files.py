@@ -393,6 +393,31 @@ class TestParseHirshfeldOrMullikenChargesSection(unittest.TestCase):
  !-----------------------------------------------------------------------------!
 """
 
+	def _loadTestSectionMullikenExtraBreakdown(self):
+		return """
+ !-----------------------------------------------------------------------------!
+                     Mulliken Population Analysis
+
+ # Orbital  AO symbol  Orbital population                            Net charge
+
+         1  Mg  3s               0.970714
+         2  Mg  4s              -0.005614
+         3  Mg  4py              0.000000
+         4  Mg  4pz              0.000000
+         5  Mg  4px              0.000000
+         6  Mg  5d-2             0.000000
+         7  Mg  5d-1             0.000000
+         8  Mg  5d0              0.000000
+         9  Mg  5d+1             0.000000
+        10  Mg  5d+2             0.000000
+        11  Mg  3s               1.034901
+       1     Mg       1          2.000000                             -0.000000
+
+ # Total charge                              2.000000                 -0.000000
+
+ !-----------------------------------------------------------------------------!
+"""
+
 	def testExpectedFromSimpleCaseA(self):
 		expEndIdx = 10
 		expChargeDict = {"charges":[-1.115, 0.561, 0.561], "total":0.007}
@@ -425,6 +450,18 @@ class TestParseHirshfeldOrMullikenChargesSection(unittest.TestCase):
 		actDict, actEndIdx = tCode._parseHirshfeldChargesSection(self.fileAsListMulliken, self.startIdxMulliken)
 		self.assertEqual(expEndIdx, actEndIdx)
 		self._checkExpAndActChargeDictsMatch(expChargeDict, actDict)
+
+	def testExitsGracefullyFromIncompatibleMulliken(self):
+		""" Dont want to throw an error; but dont want to try parsing this section """
+		expEndIdx = 21
+		expChargeDict = dict()
+		fileAsList = self._loadTestSectionMullikenExtraBreakdown().split("\n")
+		startIdx = 3
+
+		actDict, actEndIdx = tCode._parseHirshfeldChargesSection(fileAsList, startIdx)
+		self.assertEqual(expEndIdx, actEndIdx)
+		self.assertEqual(expChargeDict, actDict)
+
 
 
 class TestParseCP2kGeomOutputXyzFiles(unittest.TestCase):

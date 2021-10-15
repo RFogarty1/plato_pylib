@@ -442,21 +442,25 @@ def _parseHirshfeldChargesSection(fileAsList, lineIdx):
 	lineIdx += 1
 
 	outCharges = list()
+	parseCharges = True #Flag invented to deal with annoying case of Mulliken charges being mixed with orbital population
 	while (endStr not in fileAsList[lineIdx]) and (lineIdx<len(fileAsList)):
 		currLine = fileAsList[lineIdx]
 		if currLine.strip() == "":
 			pass
+		elif "Orbital" in currLine:
+			parseCharges = False #Dont try to parse anything now; but cant break since i want to get to the endStr symbol first
 		elif "Atom" in currLine:
 			pass
-		elif "Total Charge".lower() in currLine.lower():
+		elif ("Total Charge".lower() in currLine.lower()) and parseCharges:
 			outDict["total"] = float( currLine.strip().split()[-1] )
-		else:
+		elif parseCharges:
 			currCharge = float( currLine.strip().split()[-1] )
 			outCharges.append(currCharge)
 
 		lineIdx += 1
 
-	outDict["charges"] = outCharges
+	if parseCharges:
+		outDict["charges"] = outCharges
 
 	return outDict, lineIdx
 
