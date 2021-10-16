@@ -15,6 +15,23 @@ def superCellFromUCell(unitCell, dims):
 
 	return zShifted
 
+def getUnitCellSurroundedByNCellsInEachDir(unitCell, nAlongA=1, nAlongB=1, nAlongC=1):
+	""" Gets the unit cell surrounded by n-images in each direction. Defaults lead to a total of 27 (3^3) merged into a single cell. Note that the original cells cartesian co-ordinates will be unchanged; meaning that most atoms will have -ve x/y/z co-ordinates
+	
+	Args:
+		unitCell: plato_pylib UnitCell object
+		nAlongA: (int) Number of repeates in EACH DIRECTION (+/-) along lattice vector a
+		nAlongB: (int) Number of repeates in EACH DIRECTION (+/-) along lattice vector b
+		nAlongC: (int) Number of repeates in EACH DIRECTION (+/-) along lattice vector c
+
+	Returns
+		outCell: a DIFFERENT plato_pylib UnitCell object containing the original surrounded by image cells in total
+ 
+	"""
+	xCell = _getCellWithImageAddedEachSide(unitCell,0, nAlongA) 
+	yCell = _getCellWithImageAddedEachSide(xCell,1, nAlongB) 
+	outCell = _getCellWithImageAddedEachSide(yCell,2, nAlongC) 
+	return copy.deepcopy(outCell)
 
 
 def getUnitCellSurroundedByNeighbourCells(unitCell, alongA=True, alongB=True, alongC=True, removeStartCoords=False):
@@ -56,7 +73,10 @@ def getUnitCellSurroundedByNeighbourCells(unitCell, alongA=True, alongB=True, al
 	return outCell
 
 
-def _getCellWithImageAddedEachSide(startCell, dimIdx:"0,1,2 for x,y,z"):
+def _getCellWithImageAddedEachSide(startCell, dimIdx:"0,1,2 for x,y,z", nImages=1):
+	if nImages < 1:
+		return startCell
+
 	#Get translation vectors
 	startCartCoords = copy.deepcopy( startCell.cartCoords )
 	translationVector = startCell.lattVects[dimIdx]
@@ -64,10 +84,11 @@ def _getCellWithImageAddedEachSide(startCell, dimIdx:"0,1,2 for x,y,z"):
 	#get the new cartesian coordinates for both directions; +ve then negative
 	positiveNewCarts, negativeNewCarts = list(), list()
 	for coord in startCartCoords:
-		currPositive = [a+b for a,b in it.zip_longest(coord[:3],translationVector[:3])] + [coord[-1]]
-		currNegative = [a-b for a,b in it.zip_longest(coord[:3],translationVector[:3])] + [coord[-1]]
-		positiveNewCarts.append(currPositive)
-		negativeNewCarts.append(currNegative)
+		for n in range(1,nImages+1):
+			currPositive = [a+n*b for a,b in it.zip_longest(coord[:3],translationVector[:3])] + [coord[-1]]
+			currNegative = [a-n*b for a,b in it.zip_longest(coord[:3],translationVector[:3])] + [coord[-1]]
+			positiveNewCarts.append(currPositive)
+			negativeNewCarts.append(currNegative)
 
 	newCartCoords = startCartCoords + positiveNewCarts + negativeNewCarts
  
@@ -112,12 +133,10 @@ def _getSuperCellOneDim(unitCell,dimIdx:"0,1,2 for x,y,z", multiple:"int, number
 
 	#Step 6 = Create the output object
 	outCell = UCell.UnitCell.fromLattVects( newCellVects)
+	outCell.putCAlongZ = unitCell.putCAlongZ #If this doesnt go BEFORE cart coords we get annoying transformations. Note this is a deprecated and stupid attribute regardless
 	outCell.cartCoords = endCartCoords
-	outCell.putCAlongZ = unitCell.putCAlongZ
 
 	return outCell
-
-
 
 def _getUnitVectorFromVector(vector:"iter"):
 	lenVect = math.sqrt( sum([x**2 for x in vector]) )

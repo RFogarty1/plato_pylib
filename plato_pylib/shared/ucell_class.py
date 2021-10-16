@@ -58,7 +58,7 @@ class UnitCell():
 			lattAngles: (len 3 float iter) [alpha,beta,gamma] where these are lattice angles as traditionally defined. Namely alpha,beta,gamma are the angles between bc,ac and ab respectivetly
 			fractCoords: (iter of nx3 iter) Fractional coordinates for a list of atoms. e.g. [ [0.0,0.0,0.0], [0.5,0.5,0.5]]. Note that setting fractCoords OUTSIDE the initialiser also requires the atom symbols to be passed (e.g. [[0.0,0.0,0.0,"Mg"]]). Also note elementList SHOULD be set alongside fractCoords in the initialiser
 			elementList: (str iter) Each entry contains a string representing the element of one atom in fractCoords. Therefore
-			putCAlongZ: (Bool, default is False) If true then the 3rd lattice vector in self.lattVects will always be [0,0,c]			 
+			putCAlongZ: (Bool, default is False) If true then the 3rd lattice vector in self.lattVects will always be [0,0,c]. DEPRECATED/STUPID: PLEASE leave it as False			 
 
 		"""
 		kwargs = {k.lower():v for k,v in kwargs.items()}
