@@ -1,9 +1,10 @@
 
-
+import os
 import itertools as it
 import unittest
 import unittest.mock as mock
 
+import plato_pylib.shared.ucell_class as uCellHelp
 import plato_pylib.parseOther.parse_xyz_files as tCode
 
 class TestParseStandardXyzFile(unittest.TestCase):
@@ -50,6 +51,37 @@ class TestParseStandardXyzFile(unittest.TestCase):
 def _loadTestFileStrA():
 	outStr = "3\n	Energy:       1.1879058\nMg         0.47601        1.17311       -0.01666\nO          2.49299        1.29156       -0.08446\nO         -1.52873        1.05441        0.04713"
 	return outStr
+
+class TestDumpExyzForSingleUnitCell(unittest.TestCase):
+
+	def setUp(self):
+		self.lattParams, self.lattAngles = [10,11,12], [90,90,90]
+		self.cartCoords = [ [0,1,1,"X"], [0,2,3,"Y"] ] 
+		self.createTestObjs()
+
+	def createTestObjs(self):
+		self.cellA = uCellHelp.UnitCell(lattParams=self.lattParams, lattAngles=self.lattAngles)
+		self.cellA.cartCoords = self.cartCoords
+
+	def _dumpAndParse(self):
+		tempFileName = "_temp_test_file.exyz"
+		self._removeTempFile(tempFileName)
+		tCode.dumpExtendedXyzFile_singleGeom(tempFileName, self.cellA)
+		outGeom = tCode.parseExtendedXyzFile_singleGeom(tempFileName)
+		self._removeTempFile(tempFileName)
+		return outGeom
+
+	def _removeTempFile(self, tempFileName):
+		try:
+			os.remove(tempFileName)
+		except FileNotFoundError:
+			pass
+
+	def testDumpAndParseConsistentA(self):
+		expCell = self.cellA
+		actCell = self._dumpAndParse()
+		self.assertEqual(expCell,actCell)
+
 
 
 
